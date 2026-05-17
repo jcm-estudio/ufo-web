@@ -1,19 +1,14 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Cosmos Misterioso — Portal OVNI</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Exo+2:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Exo+2:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
             --space-black: #0a0a12;
@@ -27,18 +22,64 @@
             --border-glow: rgba(57, 255, 20, 0.2);
         }
 
-        html {
-            scroll-behavior: smooth;
-        }
+        html { scroll-behavior: smooth; }
 
         body {
             font-family: 'Exo 2', sans-serif;
             background: var(--space-black);
             color: var(--soft-white);
             overflow-x: hidden;
+            cursor: none;
         }
 
-        #stars-canvas {
+        a, button, .card, .resource-link, .stat-card { cursor: none; }
+
+        #cursor {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            width: 40px;
+            height: 40px;
+            border: 2px solid var(--neon-green);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.2s, height 0.2s, border-color 0.2s, background 0.2s;
+            box-shadow: 0 0 15px rgba(57, 255, 20, 0.3), inset 0 0 15px rgba(57, 255, 20, 0.1);
+            mix-blend-mode: difference;
+        }
+
+        #cursor .dot {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 4px;
+            height: 4px;
+            background: var(--neon-green);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--neon-green);
+        }
+
+        #cursor.hover {
+            width: 60px;
+            height: 60px;
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 25px rgba(176, 38, 255, 0.4), inset 0 0 25px rgba(176, 38, 255, 0.1);
+        }
+
+        #progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 0%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--neon-green), var(--neon-blue), var(--neon-purple));
+            z-index: 1000;
+            box-shadow: 0 0 20px var(--neon-green);
+            transition: width 0.1s linear;
+        }
+
+        #ufo-canvas {
             position: fixed;
             top: 0;
             left: 0;
@@ -48,20 +89,16 @@
             pointer-events: none;
         }
 
-        .content {
-            position: relative;
-            z-index: 1;
-        }
+        .content { position: relative; z-index: 1; }
 
-        /* Navigation */
         nav {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             padding: 20px 40px;
-            background: rgba(10, 10, 18, 0.9);
-            backdrop-filter: blur(12px);
+            background: rgba(10, 10, 18, 0.85);
+            backdrop-filter: blur(16px);
             border-bottom: 1px solid var(--border-glow);
             display: flex;
             justify-content: space-between;
@@ -77,22 +114,36 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+            position: relative;
+        }
+
+        .logo::after {
+            content: '◉';
+            position: absolute;
+            top: -8px;
+            right: -18px;
+            font-size: 10px;
+            color: var(--neon-green);
+            animation: pulse-dot 2s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.3; transform: scale(1.5); }
         }
 
         .nav-links a {
             color: var(--soft-white);
             text-decoration: none;
             margin-left: 30px;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
             transition: all 0.3s;
             position: relative;
+            letter-spacing: 1px;
         }
 
-        .nav-links a:hover {
-            color: var(--neon-green);
-            text-shadow: 0 0 10px var(--neon-green);
-        }
+        .nav-links a:hover { color: var(--neon-green); text-shadow: 0 0 10px var(--neon-green); }
 
         .nav-links a::after {
             content: '';
@@ -106,11 +157,8 @@
             box-shadow: 0 0 8px var(--neon-green);
         }
 
-        .nav-links a:hover::after {
-            width: 100%;
-        }
+        .nav-links a:hover::after { width: 100%; }
 
-        /* Hero */
         .hero {
             min-height: 100vh;
             display: flex;
@@ -120,6 +168,25 @@
             text-align: center;
             padding: 120px 20px 60px;
             position: relative;
+            overflow: hidden;
+        }
+
+        .hero-glow {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(57,255,20,0.05) 0%, transparent 70%);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            animation: glow-pulse 4s ease-in-out infinite;
+        }
+
+        @keyframes glow-pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
+            50% { transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
         }
 
         .hero h1 {
@@ -130,16 +197,29 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            margin-bottom: 20px;
-            animation: fadeInUp 1.2s ease;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 2;
+            line-height: 1.1;
+        }
+
+        .hero h1 .cursor-blink {
+            -webkit-text-fill-color: var(--neon-green);
+            animation: blink 0.8s step-end infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
         }
 
         .hero .subtitle {
-            font-size: clamp(16px, 2.5vw, 24px);
+            font-size: clamp(14px, 2vw, 20px);
             font-weight: 300;
-            color: rgba(232, 232, 240, 0.7);
-            margin-bottom: 40px;
-            animation: fadeInUp 1.2s ease 0.3s both;
+            color: rgba(232, 232, 240, 0.6);
+            margin-bottom: 32px;
+            position: relative;
+            z-index: 2;
         }
 
         .hero-cta {
@@ -152,16 +232,17 @@
             background: var(--neon-green);
             border: none;
             border-radius: 50px;
-            cursor: pointer;
+            cursor: none;
             text-decoration: none;
             transition: all 0.3s;
             box-shadow: 0 0 30px rgba(57, 255, 20, 0.3);
-            animation: fadeInUp 1.2s ease 0.6s both;
+            position: relative;
+            z-index: 2;
         }
 
         .hero-cta:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 0 50px rgba(57, 255, 20, 0.6);
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 0 60px rgba(57, 255, 20, 0.6);
         }
 
         .scroll-indicator {
@@ -169,46 +250,94 @@
             bottom: 30px;
             left: 50%;
             transform: translateX(-50%);
-            animation: bounce 2s infinite;
-            color: rgba(232, 232, 240, 0.4);
-            font-size: 12px;
+            color: rgba(232, 232, 240, 0.3);
+            font-size: 11px;
             font-family: 'Orbitron', sans-serif;
+            z-index: 2;
+            animation: scroll-bounce 2s infinite;
+            letter-spacing: 3px;
         }
 
-        .scroll-indicator::after {
-            content: '↓';
-            display: block;
-            text-align: center;
-            font-size: 20px;
-            margin-top: 4px;
+        @keyframes scroll-bounce {
+            0%, 100% { transform: translateX(-50%) translateY(0); opacity: 0.5; }
+            50% { transform: translateX(-50%) translateY(10px); opacity: 1; }
         }
 
-        /* Sections */
+        .ufo-3d-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        #three-ufo {
+            width: 100%;
+            height: 100%;
+        }
+
+        .click-hint {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2;
+            font-size: 12px;
+            color: rgba(232, 232, 240, 0.2);
+            font-weight: 300;
+            animation: fade-hint 3s ease-in-out infinite;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        @keyframes fade-hint {
+            0%, 100% { opacity: 0.2; }
+            50% { opacity: 0.8; }
+        }
+
         section {
             padding: 100px 40px;
             max-width: 1200px;
             margin: 0 auto;
+            position: relative;
         }
 
         .section-title {
             font-family: 'Orbitron', sans-serif;
             font-size: clamp(24px, 4vw, 40px);
             font-weight: 700;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
             color: var(--neon-green);
             text-shadow: 0 0 20px rgba(57, 255, 20, 0.3);
             text-align: center;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s ease;
+        }
+
+        .section-title.visible {
+            opacity: 1;
+            transform: translateY(0);
         }
 
         .section-subtitle {
             text-align: center;
-            font-size: 16px;
-            color: rgba(232, 232, 240, 0.5);
-            margin-bottom: 60px;
+            font-size: 15px;
+            color: rgba(232, 232, 240, 0.4);
+            margin-bottom: 50px;
             font-weight: 300;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.8s ease 0.2s;
         }
 
-        /* Cards Grid */
+        .section-subtitle.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
         .cards-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -222,36 +351,47 @@
             padding: 32px 24px;
             transition: all 0.4s;
             backdrop-filter: blur(8px);
+            perspective: 1000px;
+            transform-style: preserve-3d;
+            opacity: 0;
+            transform: translateY(40px);
         }
 
-        .card:hover {
-            transform: translateY(-8px);
+        .card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .card.tilted {
+            transform: perspective(1000px) rotateX(var(--rot-x, 0deg)) rotateY(var(--rot-y, 0deg));
             border-color: var(--neon-green);
-            box-shadow: 0 0 30px rgba(57, 255, 20, 0.15);
+            box-shadow: 0 0 35px rgba(57, 255, 20, 0.15);
         }
 
         .card-icon {
-            font-size: 36px;
+            font-size: 40px;
             margin-bottom: 16px;
             display: block;
+            transform: translateZ(30px);
         }
 
         .card h3 {
             font-family: 'Orbitron', sans-serif;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 600;
             margin-bottom: 12px;
             color: var(--neon-blue);
+            transform: translateZ(20px);
         }
 
         .card p {
             font-size: 14px;
             line-height: 1.7;
-            color: rgba(232, 232, 240, 0.7);
+            color: rgba(232, 232, 240, 0.65);
             font-weight: 300;
+            transform: translateZ(10px);
         }
 
-        /* Timeline */
         .timeline {
             position: relative;
             padding-left: 40px;
@@ -272,6 +412,14 @@
             position: relative;
             margin-bottom: 40px;
             padding-left: 30px;
+            opacity: 0;
+            transform: translateX(-20px);
+            transition: all 0.6s ease;
+        }
+
+        .timeline-item.visible {
+            opacity: 1;
+            transform: translateX(0);
         }
 
         .timeline-item::before {
@@ -286,7 +434,7 @@
 
         .timeline-item .year {
             font-family: 'Orbitron', sans-serif;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 700;
             color: var(--neon-blue);
             margin-bottom: 6px;
@@ -302,11 +450,10 @@
         .timeline-item p {
             font-size: 14px;
             line-height: 1.7;
-            color: rgba(232, 232, 240, 0.7);
+            color: rgba(232, 232, 240, 0.65);
             font-weight: 300;
         }
 
-        /* Stats */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -321,16 +468,24 @@
             padding: 30px 20px;
             text-align: center;
             transition: all 0.3s;
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        .stat-card.visible {
+            opacity: 1;
+            transform: translateY(0);
         }
 
         .stat-card:hover {
             border-color: var(--neon-blue);
             box-shadow: 0 0 25px rgba(0, 212, 255, 0.15);
+            transform: translateY(-4px);
         }
 
         .stat-number {
             font-family: 'Orbitron', sans-serif;
-            font-size: 36px;
+            font-size: 38px;
             font-weight: 800;
             background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
             -webkit-background-clip: text;
@@ -340,12 +495,41 @@
 
         .stat-label {
             font-size: 13px;
-            color: rgba(232, 232, 240, 0.5);
+            color: rgba(232, 232, 240, 0.45);
             margin-top: 8px;
             font-weight: 300;
         }
 
-        /* Resources */
+        .radar-section {
+            padding: 100px 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .radar-container {
+            width: 300px;
+            height: 300px;
+            margin: 40px auto;
+            position: relative;
+            border-radius: 50%;
+            border: 2px solid var(--neon-green);
+            box-shadow: 0 0 40px rgba(57, 255, 20, 0.15), inset 0 0 40px rgba(57, 255, 20, 0.05);
+        }
+
+        .radar-container canvas {
+            border-radius: 50%;
+        }
+
+        .radar-label {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 11px;
+            color: var(--neon-green);
+            margin-top: 16px;
+            letter-spacing: 2px;
+            opacity: 0.6;
+        }
+
         .resources-list {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -363,21 +547,24 @@
             text-decoration: none;
             color: var(--soft-white);
             transition: all 0.3s;
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+
+        .resource-link.visible {
+            opacity: 1;
+            transform: translateX(0);
         }
 
         .resource-link:hover {
             border-color: var(--neon-purple);
             box-shadow: 0 0 20px rgba(176, 38, 255, 0.2);
-            transform: translateX(4px);
+            transform: translateX(6px);
         }
 
-        .resource-link .emoji {
-            font-size: 28px;
-        }
+        .resource-link .emoji { font-size: 28px; }
 
-        .resource-link .info {
-            flex: 1;
-        }
+        .resource-link .info { flex: 1; }
 
         .resource-link .info .name {
             font-weight: 600;
@@ -387,74 +574,102 @@
 
         .resource-link .info .desc {
             font-size: 12px;
-            color: rgba(232, 232, 240, 0.5);
+            color: rgba(232, 232, 240, 0.45);
         }
 
-        .resource-link .arrow {
-            color: var(--neon-purple);
-            font-size: 18px;
+        .resource-link .arrow { color: var(--neon-purple); font-size: 18px; }
+
+        .spawn-ufo {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9998;
+            font-size: 30px;
+            animation: fly-ufo 3s ease-in forwards;
         }
 
-        /* Footer */
+        @keyframes fly-ufo {
+            0% {
+                opacity: 1;
+                transform: translate(0, 0) rotate(0deg) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(var(--fly-x, 500px), var(--fly-y, -300px)) rotate(var(--fly-r, 15deg)) scale(0.3);
+            }
+        }
+
+        .trail-particle {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9997;
+            width: 4px;
+            height: 4px;
+            background: var(--neon-green);
+            border-radius: 50%;
+            box-shadow: 0 0 6px var(--neon-green);
+            animation: trail-fade 0.8s ease-out forwards;
+        }
+
+        @keyframes trail-fade {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0); }
+        }
+
         footer {
             text-align: center;
             padding: 40px 20px;
             border-top: 1px solid var(--border-glow);
             font-size: 13px;
-            color: rgba(232, 232, 240, 0.3);
+            color: rgba(232, 232, 240, 0.2);
             font-weight: 300;
-            position: relative;
-            z-index: 1;
         }
 
-        footer span {
-            color: var(--neon-green);
-            text-shadow: 0 0 10px rgba(57, 255, 20, 0.3);
+        footer span { color: var(--neon-green); text-shadow: 0 0 10px rgba(57, 255, 20, 0.3); }
+
+        /* Notification toast */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--card-bg);
+            border: 1px solid var(--neon-green);
+            border-radius: 12px;
+            padding: 16px 24px;
+            font-size: 13px;
+            color: var(--soft-white);
+            box-shadow: 0 0 30px rgba(57, 255, 20, 0.2);
+            backdrop-filter: blur(12px);
+            z-index: 9999;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.5s ease;
+            pointer-events: none;
         }
 
-        /* Animations */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(40px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
         }
 
-        @keyframes bounce {
-            0%, 100% { transform: translateX(-50%) translateY(0); }
-            50% { transform: translateX(-50%) translateY(10px); }
-        }
-
-        /* Responsive */
         @media (max-width: 768px) {
-            nav {
-                padding: 16px 20px;
-                flex-direction: column;
-                gap: 12px;
-            }
-            .nav-links a {
-                margin: 0 12px;
-                font-size: 12px;
-            }
-            section {
-                padding: 60px 20px;
-            }
-            .timeline {
-                padding-left: 24px;
-            }
-            .timeline-item::before {
-                left: -29px;
-            }
+            nav { padding: 16px 20px; flex-direction: column; gap: 12px; }
+            .nav-links a { margin: 0 10px; font-size: 11px; }
+            section { padding: 60px 20px; }
+            .timeline { padding-left: 24px; }
+            .timeline-item::before { left: -29px; }
+            .radar-container { width: 240px; height: 240px; }
+            #cursor { display: none; }
+            body { cursor: auto; }
+            a, button, .card, .resource-link, .stat-card { cursor: pointer; }
         }
     </style>
 </head>
 <body>
 
-<div id="stars-canvas"></div>
+<div id="progress-bar"></div>
+<div id="cursor"><div class="dot"></div></div>
+<div id="ufo-canvas"></div>
+<div class="toast" id="toast">🛸 Señal detectada</div>
 
 <nav>
     <div class="logo">✦ COSMOS MISTERIOSO</div>
@@ -463,6 +678,7 @@
         <a href="#fenomenos">Fenómenos</a>
         <a href="#historia">Historia</a>
         <a href="#datos">Datos</a>
+        <a href="#radar">Radar</a>
         <a href="#recursos">Recursos</a>
     </div>
 </nav>
@@ -470,16 +686,19 @@
 <div class="content">
 
     <section class="hero" id="inicio">
-        <h1>¿ESTAMOS SOLOS?</h1>
+        <div class="hero-glow"></div>
+        <div class="ufo-3d-container"><div id="three-ufo"></div></div>
+        <h1 id="typed-title"><span class="cursor-blink">|</span></h1>
         <p class="subtitle">Explorando el fenómeno OVNI — de avistamientos militares a encuentros imposibles</p>
         <a href="#fenomenos" class="hero-cta">EXPLORAR</a>
         <div class="scroll-indicator">DESCUBRE</div>
+        <div class="click-hint">🖱 Haz clic en cualquier parte para lanzar un OVNI</div>
     </section>
 
     <section id="fenomenos">
         <h2 class="section-title">Fenómenos</h2>
         <p class="section-subtitle">Las categorías más reportadas del fenómeno OVNI</p>
-        <div class="cards-grid">
+        <div class="cards-grid" id="cards-grid">
             <div class="card">
                 <span class="card-icon">🛸</span>
                 <h3>Platillos Volantes</h3>
@@ -555,22 +774,31 @@
         <p class="section-subtitle">Datos que invitan a preguntarse qué hay allá afuera</p>
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-number">+125,000</div>
+                <div class="stat-number" data-target="125000">0</div>
                 <div class="stat-label">Avistamientos reportados desde 1947</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number">97%</div>
+                <div class="stat-number" data-target="97">0<span style="font-size:20px">%</span></div>
                 <div class="stat-label">Tienen explicación convencional — el 3% restante no</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number">33</div>
+                <div class="stat-number" data-target="33">0</div>
                 <div class="stat-label">Países con archivos OVNI desclasificados</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number">+4,000</div>
+                <div class="stat-number" data-target="4000">0</div>
                 <div class="stat-label">Pilotos militares que han reportado fenómenos</div>
             </div>
         </div>
+    </section>
+
+    <section id="radar" class="radar-section">
+        <h2 class="section-title">Radar de Señales</h2>
+        <p class="section-subtitle">Monitor de actividad en tiempo real — mueve el mouse sobre el radar</p>
+        <div class="radar-container">
+            <canvas id="radar-canvas" width="300" height="300"></canvas>
+        </div>
+        <div class="radar-label">◉ ESCANEANDO EL ESPECTRO</div>
     </section>
 
     <section id="recursos">
@@ -579,131 +807,645 @@
         <div class="resources-list">
             <a href="https://www.aaro.mil" target="_blank" rel="noopener" class="resource-link">
                 <span class="emoji">🏛️</span>
-                <div class="info">
-                    <div class="name">AARO — Pentágono</div>
-                    <div class="desc">Oficina de Resolución de Anomalías del Departamento de Defensa de EE.UU.</div>
-                </div>
+                <div class="info"><div class="name">AARO — Pentágono</div><div class="desc">Oficina de Resolución de Anomalías del Departamento de Defensa de EE.UU.</div></div>
                 <span class="arrow">→</span>
             </a>
             <a href="https://www.mufon.com" target="_blank" rel="noopener" class="resource-link">
                 <span class="emoji">🔍</span>
-                <div class="info">
-                    <div class="name">MUFON</div>
-                    <div class="desc">Mutual UFO Network — la red civil más grande de investigación OVNI</div>
-                </div>
+                <div class="info"><div class="name">MUFON</div><div class="desc">Mutual UFO Network — la red civil más grande de investigación OVNI</div></div>
                 <span class="arrow">→</span>
             </a>
             <a href="https://www.cufos.org" target="_blank" rel="noopener" class="resource-link">
                 <span class="emoji">📚</span>
-                <div class="info">
-                    <div class="name">CUFOS</div>
-                    <div class="desc">Center for UFO Studies — archivo académico fundado por el Dr. J. Allen Hynek</div>
-                </div>
+                <div class="info"><div class="name">CUFOS</div><div class="desc">Center for UFO Studies — archivo académico fundado por el Dr. J. Allen Hynek</div></div>
                 <span class="arrow">→</span>
             </a>
             <a href="https://www.nationalufocenter.com" target="_blank" rel="noopener" class="resource-link">
                 <span class="emoji">🌐</span>
-                <div class="info">
-                    <div class="name">National UFO Center</div>
-                    <div class="desc">Reportes en vivo y archivos históricos de avistamientos</div>
-                </div>
+                <div class="info"><div class="name">National UFO Center</div><div class="desc">Reportes en vivo y archivos históricos de avistamientos</div></div>
                 <span class="arrow">→</span>
             </a>
             <a href="https://www.theblackvault.com" target="_blank" rel="noopener" class="resource-link">
                 <span class="emoji">📂</span>
-                <div class="info">
-                    <div class="name">The Black Vault</div>
-                    <div class="desc">El archivo más grande de documentos OVNI obtenidos vía FOIA</div>
-                </div>
+                <div class="info"><div class="name">The Black Vault</div><div class="desc">El archivo más grande de documentos OVNI obtenidos vía FOIA</div></div>
                 <span class="arrow">→</span>
             </a>
             <a href="https://www.naic.edu/~astro/classes/Space/Syllabus/notes/ETI/fermi.html" target="_blank" rel="noopener" class="resource-link">
                 <span class="emoji">🤔</span>
-                <div class="info">
-                    <div class="name">Paradoja de Fermi</div>
-                    <div class="desc">Si el universo está lleno de vida, ¿dónde está todo el mundo?</div>
-                </div>
+                <div class="info"><div class="name">Paradoja de Fermi</div><div class="desc">Si el universo está lleno de vida, ¿dónde está todo el mundo?</div></div>
                 <span class="arrow">→</span>
             </a>
         </div>
     </section>
 
     <footer>
-        Hecho con <span>✦</span> para la comunidad OVNI<br>
+        Hecho con <span>✦</span> para la comunidad OVNI<br />
         Basado en el repositorio Anthropic Skills · 2026
     </footer>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-    let stars = [];
-    let shootingStars = [];
+    // ─────── CURSOR PERSONALIZADO ───────
+    const cursor = document.getElementById('cursor');
+    let mouseX = 0, mouseY = 0;
 
-    function setup() {
-        let canvas = createCanvas(windowWidth, windowHeight);
-        canvas.parent('stars-canvas');
+    document.addEventListener('mousemove', e => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+        cursor.style.left = e.clientX + 'px';
+        cursor.style.top = e.clientY + 'px';
+    });
 
-        for (let i = 0; i < 300; i++) {
-            stars.push({
-                x: random(width),
-                y: random(height),
-                size: random(0.5, 2.5),
-                alpha: random(80, 255),
-                speed: random(0.02, 0.08),
-                twinkleSpeed: random(0.005, 0.02),
-                twinklePhase: random(TWO_PI)
-            });
+    document.querySelectorAll('a, button, .card, .resource-link, .stat-card').forEach(el => {
+        el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
+        el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
+    });
+
+    // ─────── BARRA DE PROGRESO ───────
+    const progressBar = document.getElementById('progress-bar');
+
+    window.addEventListener('scroll', () => {
+        const scrollTop = window.scrollY;
+        const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+        const progress = (scrollTop / docHeight) * 100;
+        progressBar.style.width = progress + '%';
+    });
+
+    // ─────── TÍTULO CON EFECTO DE MÁQUINA DE ESCRIBIR ───────
+    const titleEl = document.getElementById('typed-title');
+    const fullTitle = '¿ESTAMOS SOLOS?';
+    let charIndex = 0;
+
+    function typeTitle() {
+        if (charIndex < fullTitle.length) {
+            titleEl.innerHTML = fullTitle.slice(0, charIndex + 1) + '<span class="cursor-blink">|</span>';
+            charIndex++;
+            setTimeout(typeTitle, 80 + Math.random() * 60);
         }
     }
 
-    function draw() {
-        clear();
+    setTimeout(typeTitle, 500);
 
-        for (let s of stars) {
-            let twinkle = sin(frameCount * s.twinkleSpeed + s.twinklePhase);
-            let currentAlpha = s.alpha * map(twinkle, -1, 1, 0.4, 1);
-            stroke(255, 255, 255, currentAlpha);
-            strokeWeight(s.size);
-            point(s.x, s.y);
+    // ─────── THREE.JS — OVNI 3D ───────
+    let ufoMesh, ufoGroup, ringGroup;
+    let ufoMouseX = 0, ufoMouseY = 0;
+    let shipRotation = 0;
+
+    function initThreeUFO() {
+        const container = document.getElementById('three-ufo');
+        const rect = container.getBoundingClientRect();
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000);
+        camera.position.set(0, 2, 8);
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        renderer.setSize(w, h);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        // Lights
+        const ambientLight = new THREE.AmbientLight(0x404060);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+        dirLight.position.set(5, 10, 7);
+        scene.add(dirLight);
+
+        const dirLight2 = new THREE.DirectionalLight(0x39ff14, 0.4);
+        dirLight2.position.set(-5, -3, 5);
+        scene.add(dirLight2);
+
+        const pointLight = new THREE.PointLight(0x00d4ff, 0.5, 10);
+        pointLight.position.set(0, 3, 2);
+        scene.add(pointLight);
+
+        // UFO Group
+        ufoGroup = new THREE.Group();
+
+        // Cuerpo principal (domo)
+        const bodyGeo = new THREE.SphereGeometry(1.4, 32, 32, 0, Math.PI * 2, 0, Math.PI / 2.5);
+        const bodyMat = new THREE.MeshStandardMaterial({
+            color: 0x2a2a3a,
+            metalness: 0.8,
+            roughness: 0.2,
+            emissive: 0x111122,
+            emissiveIntensity: 0.1
+        });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.scale.set(1, 0.3, 1);
+        body.position.y = 0.1;
+        ufoGroup.add(body);
+
+        // Base inferior
+        const baseGeo = new THREE.CylinderGeometry(1.3, 1.6, 0.2, 32);
+        const baseMat = new THREE.MeshStandardMaterial({
+            color: 0x1a1a2e,
+            metalness: 0.9,
+            roughness: 0.15,
+            emissive: 0x0a0a1e,
+            emissiveIntensity: 0.2
+        });
+        const base = new THREE.Mesh(baseGeo, baseMat);
+        base.position.y = -0.15;
+        ufoGroup.add(base);
+
+        // Domo superior (cabina)
+        const domeGeo = new THREE.SphereGeometry(0.6, 24, 24, 0, Math.PI * 2, 0, Math.PI / 2);
+        const domeMat = new THREE.MeshStandardMaterial({
+            color: 0x00d4ff,
+            metalness: 0.3,
+            roughness: 0.1,
+            transparent: true,
+            opacity: 0.6,
+            emissive: 0x00d4ff,
+            emissiveIntensity: 0.15
+        });
+        const dome = new THREE.Mesh(domeGeo, domeMat);
+        dome.position.y = 0.35;
+        dome.scale.set(0.6, 0.3, 0.6);
+        ufoGroup.add(dome);
+
+        // Anillo de luces
+        ringGroup = new THREE.Group();
+        for (let i = 0; i < 20; i++) {
+            const angle = (i / 20) * Math.PI * 2;
+            const lightGeo = new THREE.SphereGeometry(0.06, 8, 8);
+            const lightMat = new THREE.MeshStandardMaterial({
+                color: i % 2 === 0 ? 0x39ff14 : 0x00d4ff,
+                emissive: i % 2 === 0 ? 0x39ff14 : 0x00d4ff,
+                emissiveIntensity: 0.5
+            });
+            const lightMesh = new THREE.Mesh(lightGeo, lightMat);
+            lightMesh.position.set(Math.cos(angle) * 1.35, -0.08, Math.sin(angle) * 1.35);
+            ringGroup.add(lightMesh);
+        }
+        ufoGroup.add(ringGroup);
+
+        // Luces inferiores (pulsantes)
+        for (let i = 0; i < 12; i++) {
+            const angle = (i / 12) * Math.PI * 2;
+            const lightGeo = new THREE.SphereGeometry(0.04, 6, 6);
+            const lightMat = new THREE.MeshStandardMaterial({
+                color: 0x39ff14,
+                emissive: 0x39ff14,
+                emissiveIntensity: 0.3
+            });
+            const lightMesh = new THREE.Mesh(lightGeo, lightMat);
+            lightMesh.position.set(Math.cos(angle) * 1.45, -0.2 + Math.sin(angle) * 0.05, Math.sin(angle) * 1.45);
+            ufoGroup.add(lightMesh);
         }
 
-        if (frameCount % 120 < 2 && random() < 0.3) {
-            shootingStars.push({
-                x: random(width),
-                y: random(height * 0.3),
-                len: random(60, 150),
-                speed: random(8, 16),
-                alpha: 255,
-                angle: random(PI * 0.2, PI * 0.4)
+        ufoGroup.scale.set(0.9, 0.9, 0.9);
+        scene.add(ufoGroup);
+
+        // Pequeñas partículas alrededor
+        const particleCount = 60;
+        const particleGeo = new THREE.BufferGeometry();
+        const positions = new Float32Array(particleCount * 3);
+        const particleSpeeds = [];
+        for (let i = 0; i < particleCount; i++) {
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+            const r = 2 + Math.random() * 1.5;
+            positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+            positions[i * 3 + 1] = r * Math.cos(phi) * 0.3;
+            positions[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
+            particleSpeeds.push({
+                theta: theta,
+                phi: phi,
+                r: r,
+                speed: 0.002 + Math.random() * 0.005
             });
         }
+        particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const particleMat = new THREE.PointsMaterial({
+            color: 0x00d4ff,
+            size: 0.04,
+            transparent: true,
+            opacity: 0.6,
+            blending: THREE.AdditiveBlending
+        });
+        const particleSystem = new THREE.Points(particleGeo, particleMat);
+        scene.add(particleSystem);
 
-        for (let i = shootingStars.length - 1; i >= 0; i--) {
-            let s = shootingStars[i];
-            let dx = cos(s.angle) * s.speed;
-            let dy = sin(s.angle) * s.speed;
-            s.x += dx;
-            s.y += dy;
-            s.alpha -= 4;
+        // Animación
+        let time = 0;
 
-            if (s.alpha <= 0 || s.x > width || s.y > height) {
-                shootingStars.splice(i, 1);
-                continue;
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.01;
+
+            const targetRotY = (ufoMouseX / window.innerWidth) * 0.3;
+            const targetRotX = (ufoMouseY / window.innerHeight) * 0.15;
+
+            ufoGroup.rotation.y += (targetRotY - ufoGroup.rotation.y) * 0.05;
+            ufoGroup.rotation.x += (-targetRotX - ufoGroup.rotation.x) * 0.05;
+
+            ufoGroup.position.y = Math.sin(time * 0.8) * 0.15;
+            ufoGroup.rotation.z = Math.sin(time * 0.5) * 0.03;
+
+            // Rotar anillo de luces
+            ringGroup.rotation.y += 0.02;
+
+            // Pulsar luces del anillo
+            ringGroup.children.forEach((child, i) => {
+                const pulse = 0.4 + Math.sin(time * 3 + i) * 0.4;
+                child.material.emissiveIntensity = pulse;
+                child.scale.setScalar(0.8 + pulse * 0.4);
+            });
+
+            // Rotar partículas
+            const pos = particleSystem.geometry.attributes.position.array;
+            for (let i = 0; i < particleCount; i++) {
+                const data = particleSpeeds[i];
+                data.theta += data.speed;
+                const rr = data.r + Math.sin(time + i) * 0.2;
+                pos[i * 3] = rr * Math.sin(data.phi) * Math.cos(data.theta);
+                pos[i * 3 + 1] = rr * Math.cos(data.phi) * 0.3;
+                pos[i * 3 + 2] = rr * Math.sin(data.phi) * Math.sin(data.theta);
             }
+            particleSystem.geometry.attributes.position.needsUpdate = true;
 
-            stroke(255, 255, 255, s.alpha);
-            strokeWeight(2);
-            line(s.x, s.y, s.x - dx * 0.8, s.y - dy * 0.8);
+            // Punto de luz sigue al UFO
+            pointLight.position.x = ufoGroup.position.x + 2;
+            pointLight.position.y = ufoGroup.position.y + 3;
 
-            stroke(200, 220, 255, s.alpha * 0.3);
-            strokeWeight(4);
-            line(s.x, s.y, s.x - dx * 0.6, s.y - dy * 0.6);
+            renderer.render(scene, camera);
         }
+
+        animate();
+
+        // Resize
+        const resizeObserver = new ResizeObserver(() => {
+            const w2 = container.clientWidth;
+            const h2 = container.clientHeight;
+            camera.aspect = w2 / h2;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w2, h2);
+        });
+        resizeObserver.observe(container);
+
+        return renderer;
     }
 
-    function windowResized() {
-        resizeCanvas(windowWidth, windowHeight);
+    const threeRenderer = initThreeUFO();
+
+    document.addEventListener('mousemove', e => {
+        ufoMouseX = e.clientX;
+        ufoMouseY = e.clientY;
+    });
+
+    // ─────── FONDO DE ESTRELLAS (Canvas 2D) ───────
+    const starCanvas = document.getElementById('ufo-canvas');
+    const starCtx = starCanvas.getContext('2d');
+    let stars = [];
+    let starMouseX = 0, starMouseY = 0;
+
+    function resizeStarCanvas() {
+        starCanvas.width = window.innerWidth;
+        starCanvas.height = window.innerHeight;
     }
+    resizeStarCanvas();
+    window.addEventListener('resize', resizeStarCanvas);
+
+    for (let i = 0; i < 400; i++) {
+        stars.push({
+            x: Math.random() * window.innerWidth,
+            y: Math.random() * window.innerHeight,
+            size: Math.random() * 2 + 0.5,
+            alpha: Math.random() * 0.7 + 0.3,
+            speed: 0.1 + Math.random() * 0.3,
+            twinkleSpeed: 0.005 + Math.random() * 0.02,
+            twinklePhase: Math.random() * Math.PI * 2
+        });
+    }
+
+    let frame = 0;
+
+    function drawStars() {
+        frame++;
+        starCtx.clearRect(0, 0, starCanvas.width, starCanvas.height);
+
+        const dx = (starMouseX - window.innerWidth / 2) * 0.01;
+        const dy = (starMouseY - window.innerHeight / 2) * 0.01;
+
+        for (const s of stars) {
+            const twinkle = Math.sin(frame * s.twinkleSpeed + s.twinklePhase);
+            const currentAlpha = s.alpha * (0.5 + twinkle * 0.5);
+            const parallaxX = s.x - dx * s.speed * 20;
+            const parallaxY = s.y - dy * s.speed * 20;
+
+            starCtx.beginPath();
+            starCtx.arc(parallaxX, parallaxY, s.size, 0, Math.PI * 2);
+            starCtx.fillStyle = `rgba(200, 220, 255, ${currentAlpha})`;
+            starCtx.fill();
+
+            // Brillo ocasional
+            if (twinkle > 0.85 && s.size > 1.2) {
+                starCtx.beginPath();
+                starCtx.arc(parallaxX, parallaxY, s.size * 3, 0, Math.PI * 2);
+                starCtx.fillStyle = `rgba(200, 220, 255, ${currentAlpha * 0.15})`;
+                starCtx.fill();
+            }
+        }
+
+        requestAnimationFrame(drawStars);
+    }
+
+    drawStars();
+
+    document.addEventListener('mousemove', e => {
+        starMouseX = e.clientX;
+        starMouseY = e.clientY;
+    });
+
+    // ─────── CLIC — LANZAR OVNI ───────
+    document.addEventListener('click', e => {
+        if (e.target.closest('a') || e.target.closest('.hero-cta')) return;
+
+        const ufo = document.createElement('div');
+        ufo.className = 'spawn-ufo';
+        ufo.textContent = '🛸';
+        ufo.style.left = e.clientX + 'px';
+        ufo.style.top = e.clientY + 'px';
+
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 200 + Math.random() * 400;
+        ufo.style.setProperty('--fly-x', Math.cos(angle) * dist + 'px');
+        ufo.style.setProperty('--fly-y', Math.sin(angle) * dist - 200 + 'px');
+        ufo.style.setProperty('--fly-r', (Math.random() - 0.5) * 30 + 'deg');
+
+        document.body.appendChild(ufo);
+
+        // Partículas de estela
+        for (let i = 0; i < 8; i++) {
+            const trail = document.createElement('div');
+            trail.className = 'trail-particle';
+            trail.style.left = (e.clientX + (Math.random() - 0.5) * 10) + 'px';
+            trail.style.top = (e.clientY + (Math.random() - 0.5) * 10) + 'px';
+            trail.style.background = i % 2 === 0 ? '#39ff14' : '#00d4ff';
+            trail.style.boxShadow = i % 2 === 0 ? '0 0 6px #39ff14' : '0 0 6px #00d4ff';
+            document.body.appendChild(trail);
+            setTimeout(() => trail.remove(), 800);
+        }
+
+        setTimeout(() => ufo.remove(), 3000);
+
+        // Toast
+        const toast = document.getElementById('toast');
+        toast.textContent = '🛸 Señal detectada — ' + (Math.random() * 100).toFixed(1) + ' MHz';
+        toast.classList.add('show');
+        clearTimeout(toast._timeout);
+        toast._timeout = setTimeout(() => toast.classList.remove('show'), 2000);
+    });
+
+    // ─────── RADAR INTERACTIVO ───────
+    const radarCanvas = document.getElementById('radar-canvas');
+    const radarCtx = radarCanvas.getContext('2d');
+    let radarAngle = 0;
+    let radarBlips = [];
+    let radarMouseX = 150, radarMouseY = 150;
+
+    // Generar blips aleatorios
+    for (let i = 0; i < 12; i++) {
+        radarBlips.push({
+            x: Math.random() * 280 + 10,
+            y: Math.random() * 280 + 10,
+            size: 3 + Math.random() * 5,
+            alpha: 0.1 + Math.random() * 0.3,
+            pulseSpeed: 0.02 + Math.random() * 0.03,
+            phase: Math.random() * Math.PI * 2
+        });
+    }
+
+    radarCanvas.addEventListener('mousemove', e => {
+        const rect = radarCanvas.getBoundingClientRect();
+        radarMouseX = e.clientX - rect.left;
+        radarMouseY = e.clientY - rect.top;
+    });
+
+    radarCanvas.addEventListener('mouseleave', () => {
+        radarMouseX = 150;
+        radarMouseY = 150;
+    });
+
+    let radarFrame = 0;
+
+    function drawRadar() {
+        radarFrame++;
+        const w = 300, h = 300, cx = w / 2, cy = h / 2;
+
+        radarCtx.clearRect(0, 0, w, h);
+
+        // Fondo
+        const grad = radarCtx.createRadialGradient(cx, cy, 0, cx, cy, 150);
+        grad.addColorStop(0, 'rgba(0, 212, 255, 0.03)');
+        grad.addColorStop(0.5, 'rgba(0, 212, 255, 0.01)');
+        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        radarCtx.fillStyle = grad;
+        radarCtx.fillRect(0, 0, w, h);
+
+        // Círculos de alcance
+        for (let i = 1; i <= 4; i++) {
+            radarCtx.beginPath();
+            radarCtx.arc(cx, cy, 30 * i, 0, Math.PI * 2);
+            radarCtx.strokeStyle = `rgba(57, 255, 20, ${0.05 + i * 0.02})`;
+            radarCtx.lineWidth = 0.5;
+            radarCtx.stroke();
+        }
+
+        // Líneas de cuadrante
+        for (let i = 0; i < 4; i++) {
+            const a = (i / 4) * Math.PI * 2;
+            radarCtx.beginPath();
+            radarCtx.moveTo(cx, cy);
+            radarCtx.lineTo(cx + Math.cos(a) * 140, cy + Math.sin(a) * 140);
+            radarCtx.strokeStyle = 'rgba(57, 255, 20, 0.06)';
+            radarCtx.lineWidth = 0.5;
+            radarCtx.stroke();
+        }
+
+        // Barrido del radar
+        radarAngle += 0.02;
+        if (radarAngle > Math.PI * 2) radarAngle -= Math.PI * 2;
+
+        radarCtx.beginPath();
+        radarCtx.moveTo(cx, cy);
+        radarCtx.arc(cx, cy, 140, radarAngle - 0.3, radarAngle);
+        radarCtx.closePath();
+
+        const sweepGrad = radarCtx.createRadialGradient(cx, cy, 0, cx, cy, 140);
+        sweepGrad.addColorStop(0, 'rgba(57, 255, 20, 0.15)');
+        sweepGrad.addColorStop(0.5, 'rgba(57, 255, 20, 0.05)');
+        sweepGrad.addColorStop(1, 'rgba(57, 255, 20, 0)');
+        radarCtx.fillStyle = sweepGrad;
+        radarCtx.fill();
+
+        // Línea del barrido
+        radarCtx.beginPath();
+        radarCtx.moveTo(cx, cy);
+        radarCtx.lineTo(cx + Math.cos(radarAngle) * 140, cy + Math.sin(radarAngle) * 140);
+        radarCtx.strokeStyle = 'rgba(57, 255, 20, 0.6)';
+        radarCtx.lineWidth = 1.5;
+        radarCtx.shadowColor = '#39ff14';
+        radarCtx.shadowBlur = 10;
+        radarCtx.stroke();
+        radarCtx.shadowBlur = 0;
+
+        // Blips con pulsación
+        for (const blip of radarBlips) {
+            const pulse = 0.3 + Math.sin(radarFrame * blip.pulseSpeed + blip.phase) * 0.3;
+            const dist = Math.sqrt((blip.x - cx) ** 2 + (blip.y - cy) ** 2);
+
+            if (dist < 140) {
+                const alpha = blip.alpha * pulse;
+                radarCtx.beginPath();
+                radarCtx.arc(blip.x, blip.y, blip.size * (0.5 + pulse * 0.5), 0, Math.PI * 2);
+                radarCtx.fillStyle = `rgba(57, 255, 20, ${alpha})`;
+                radarCtx.shadowColor = '#39ff14';
+                radarCtx.shadowBlur = 8;
+                radarCtx.fill();
+
+                radarCtx.beginPath();
+                radarCtx.arc(blip.x, blip.y, blip.size * 1.5, 0, Math.PI * 2);
+                radarCtx.fillStyle = `rgba(57, 255, 20, ${alpha * 0.2})`;
+                radarCtx.shadowBlur = 15;
+                radarCtx.fill();
+                radarCtx.shadowBlur = 0;
+            }
+        }
+
+        // Blip que sigue al mouse
+        const d = Math.sqrt((radarMouseX - cx) ** 2 + (radarMouseY - cy) ** 2);
+        if (d < 140) {
+            radarCtx.beginPath();
+            radarCtx.arc(radarMouseX, radarMouseY, 6, 0, Math.PI * 2);
+            radarCtx.fillStyle = 'rgba(0, 212, 255, 0.6)';
+            radarCtx.shadowColor = '#00d4ff';
+            radarCtx.shadowBlur = 20;
+            radarCtx.fill();
+
+            radarCtx.beginPath();
+            radarCtx.arc(radarMouseX, radarMouseY, 14, 0, Math.PI * 2);
+            radarCtx.fillStyle = 'rgba(0, 212, 255, 0.1)';
+            radarCtx.shadowBlur = 30;
+            radarCtx.fill();
+            radarCtx.shadowBlur = 0;
+        }
+
+        // Centro
+        radarCtx.beginPath();
+        radarCtx.arc(cx, cy, 3, 0, Math.PI * 2);
+        radarCtx.fillStyle = '#39ff14';
+        radarCtx.shadowColor = '#39ff14';
+        radarCtx.shadowBlur = 10;
+        radarCtx.fill();
+        radarCtx.shadowBlur = 0;
+
+        requestAnimationFrame(drawRadar);
+    }
+
+    drawRadar();
+
+    // ─────── SCROLL REVEAL — ANIMACIONES AL HACER SCROLL ───────
+    function isInView(el) {
+        const rect = el.getBoundingClientRect();
+        return rect.top < window.innerHeight - 60;
+    }
+
+    function revealOnScroll() {
+        document.querySelectorAll('.section-title, .section-subtitle, .card, .timeline-item, .stat-card, .resource-link').forEach(el => {
+            if (isInView(el) && !el.classList.contains('visible')) {
+                el.classList.add('visible');
+                // Stagger children
+                if (el.classList.contains('card')) {
+                    const cards = document.querySelectorAll('.card');
+                    cards.forEach((c, i) => {
+                        setTimeout(() => c.classList.add('visible'), i * 100);
+                    });
+                }
+                if (el.classList.contains('stat-card')) {
+                    const stats = document.querySelectorAll('.stat-card');
+                    stats.forEach((s, i) => {
+                        setTimeout(() => s.classList.add('visible'), i * 150);
+                    });
+                }
+                if (el.classList.contains('resource-link')) {
+                    const links = document.querySelectorAll('.resource-link');
+                    links.forEach((l, i) => {
+                        setTimeout(() => l.classList.add('visible'), i * 100);
+                    });
+                }
+            }
+        });
+    }
+
+    // Inmediatamente para elementos ya visibles
+    revealOnScroll();
+    window.addEventListener('scroll', revealOnScroll);
+
+    // ─────── CARDS CON EFECTO 3D TILT ───────
+    document.querySelectorAll('.card').forEach(card => {
+        card.addEventListener('mousemove', e => {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const rotX = ((y - centerY) / centerY) * -10;
+            const rotY = ((x - centerX) / centerX) * 10;
+            card.style.setProperty('--rot-x', rotX + 'deg');
+            card.style.setProperty('--rot-y', rotY + 'deg');
+            card.classList.add('tilted');
+        });
+
+        card.addEventListener('mouseleave', () => {
+            card.classList.remove('tilted');
+            card.style.setProperty('--rot-x', '0deg');
+            card.style.setProperty('--rot-y', '0deg');
+        });
+    });
+
+    // ─────── CONTADORES ANIMADOS ───────
+    let countersAnimated = false;
+
+    function animateCounters() {
+        if (countersAnimated) return;
+        const statsSection = document.getElementById('datos');
+        if (!isInView(statsSection)) return;
+
+        countersAnimated = true;
+        document.querySelectorAll('.stat-number').forEach(el => {
+            const target = parseInt(el.dataset.target);
+            const suffix = el.querySelector('span') ? el.querySelector('span').outerHTML : '';
+            let current = 0;
+            const step = Math.ceil(target / 60);
+            const interval = setInterval(() => {
+                current += step;
+                if (current >= target) {
+                    current = target;
+                    clearInterval(interval);
+                }
+                el.innerHTML = current.toLocaleString() + suffix;
+            }, 20);
+        });
+    }
+
+    window.addEventListener('scroll', animateCounters);
+
+    // ─────── RESIZE ───────
+    window.addEventListener('resize', () => {
+        stars = stars.map(s => ({
+            ...s,
+            x: Math.random() * window.innerWidth,
+            y: Math.random() * window.innerHeight
+        }));
+    });
 </script>
-
 </body>
 </html>
