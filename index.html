@@ -363,7 +363,7 @@
         }
 
         .card.tilted {
-            transform: perspective(1000px) rotateX(var(--rot-x, 0deg)) rotateY(var(--rot-y, 0deg));
+            transform: perspective(1000px) rotateX(var(--rot-x, 0deg)) rotateY(var(--rot-y, 0deg)) translateY(0);
             border-color: var(--neon-green);
             box-shadow: 0 0 35px rgba(57, 255, 20, 0.15);
         }
@@ -513,13 +513,19 @@
             margin: 40px auto;
             position: relative;
             border-radius: 50%;
+            overflow: hidden;
             border: 2px solid var(--neon-green);
             box-shadow: 0 0 40px rgba(57, 255, 20, 0.15), inset 0 0 40px rgba(57, 255, 20, 0.05);
         }
 
         .radar-container canvas {
             border-radius: 50%;
+            display: block;
+            width: 100%;
+            height: 100%;
         }
+
+
 
         .radar-label {
             font-family: 'Orbitron', sans-serif;
@@ -796,7 +802,7 @@
         <h2 class="section-title">Radar de Señales</h2>
         <p class="section-subtitle">Monitor de actividad en tiempo real — mueve el mouse sobre el radar</p>
         <div class="radar-container">
-            <canvas id="radar-canvas" width="300" height="300"></canvas>
+            <canvas id="radar-canvas"></canvas>
         </div>
         <div class="radar-label">◉ ESCANEANDO EL ESPECTRO</div>
     </section>
@@ -882,21 +888,21 @@
             titleEl.innerHTML = fullTitle.slice(0, charIndex + 1) + '<span class="cursor-blink">|</span>';
             charIndex++;
             setTimeout(typeTitle, 80 + Math.random() * 60);
+        } else {
+            titleEl.innerHTML = fullTitle + '<span class="cursor-blink">|</span>';
         }
     }
 
     setTimeout(typeTitle, 500);
 
     // ─────── THREE.JS — OVNI 3D ───────
-    let ufoMesh, ufoGroup, ringGroup;
+    let ufoGroup, ringGroup;
     let ufoMouseX = 0, ufoMouseY = 0;
-    let shipRotation = 0;
 
     function initThreeUFO() {
         const container = document.getElementById('three-ufo');
-        const rect = container.getBoundingClientRect();
-        const w = container.clientWidth;
-        const h = container.clientHeight;
+        const w = container.clientWidth || window.innerWidth;
+        const h = container.clientHeight || window.innerHeight;
 
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000);
@@ -1089,11 +1095,13 @@
             renderer.setSize(w2, h2);
         });
         resizeObserver.observe(container);
-
-        return renderer;
     }
 
-    const threeRenderer = initThreeUFO();
+    try {
+        initThreeUFO();
+    } catch (e) {
+        console.warn('Three.js no disponible:', e);
+    }
 
     document.addEventListener('mousemove', e => {
         ufoMouseX = e.clientX;
@@ -1107,8 +1115,31 @@
     let starMouseX = 0, starMouseY = 0;
 
     function resizeStarCanvas() {
+        const oldW = starCanvas.width;
+        const oldH = starCanvas.height;
         starCanvas.width = window.innerWidth;
         starCanvas.height = window.innerHeight;
+
+        // Reposicionar estrellas proporcionalmente en lugar de aleatorio
+        const scaleX = starCanvas.width / (oldW || starCanvas.width);
+        const scaleY = starCanvas.height / (oldH || starCanvas.height);
+        for (const s of stars) {
+            s.x *= scaleX;
+            s.y *= scaleY;
+        }
+
+        // Agregar estrellas si la ventana creció
+        while (stars.length < 400) {
+            stars.push({
+                x: Math.random() * starCanvas.width,
+                y: Math.random() * starCanvas.height,
+                size: Math.random() * 2 + 0.5,
+                alpha: Math.random() * 0.7 + 0.3,
+                speed: 0.1 + Math.random() * 0.3,
+                twinkleSpeed: 0.005 + Math.random() * 0.02,
+                twinklePhase: Math.random() * Math.PI * 2
+            });
+        }
     }
     resizeStarCanvas();
     window.addEventListener('resize', resizeStarCanvas);
@@ -1210,18 +1241,35 @@
     let radarAngle = 0;
     let radarBlips = [];
     let radarMouseX = 150, radarMouseY = 150;
+    let radarW, radarHalf;
 
-    // Generar blips aleatorios
-    for (let i = 0; i < 12; i++) {
-        radarBlips.push({
-            x: Math.random() * 280 + 10,
-            y: Math.random() * 280 + 10,
-            size: 3 + Math.random() * 5,
-            alpha: 0.1 + Math.random() * 0.3,
-            pulseSpeed: 0.02 + Math.random() * 0.03,
-            phase: Math.random() * Math.PI * 2
-        });
+    function resizeRadar() {
+        const container = radarCanvas.parentElement;
+        const size = container.clientWidth;
+        const dpr = window.devicePixelRatio || 1;
+        radarCanvas.width = size * dpr;
+        radarCanvas.height = size * dpr;
+        radarCanvas.style.width = size + 'px';
+        radarCanvas.style.height = size + 'px';
+        radarW = size;
+        radarHalf = size / 2;
+
+        // Re-generar blips proporcionales al tamaño
+        radarBlips = [];
+        for (let i = 0; i < 12; i++) {
+            const margin = size * 0.03;
+            radarBlips.push({
+                x: margin + Math.random() * (size - margin * 2),
+                y: margin + Math.random() * (size - margin * 2),
+                size: 3 + Math.random() * 5,
+                alpha: 0.1 + Math.random() * 0.3,
+                pulseSpeed: 0.02 + Math.random() * 0.03,
+                phase: Math.random() * Math.PI * 2
+            });
+        }
     }
+    resizeRadar();
+    window.addEventListener('resize', resizeRadar);
 
     radarCanvas.addEventListener('mousemove', e => {
         const rect = radarCanvas.getBoundingClientRect();
@@ -1230,31 +1278,36 @@
     });
 
     radarCanvas.addEventListener('mouseleave', () => {
-        radarMouseX = 150;
-        radarMouseY = 150;
+        radarMouseX = radarHalf;
+        radarMouseY = radarHalf;
     });
 
     let radarFrame = 0;
 
     function drawRadar() {
         radarFrame++;
-        const w = 300, h = 300, cx = w / 2, cy = h / 2;
+        const w = radarW, h = radarW, cx = radarHalf, cy = radarHalf;
+        const dpr = window.devicePixelRatio || 1;
+        radarCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
         radarCtx.clearRect(0, 0, w, h);
 
         // Fondo
-        const grad = radarCtx.createRadialGradient(cx, cy, 0, cx, cy, 150);
+        const grad = radarCtx.createRadialGradient(cx, cy, 0, cx, cy, radarHalf);
         grad.addColorStop(0, 'rgba(0, 212, 255, 0.03)');
         grad.addColorStop(0.5, 'rgba(0, 212, 255, 0.01)');
         grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
         radarCtx.fillStyle = grad;
         radarCtx.fillRect(0, 0, w, h);
 
+        const maxR = radarHalf * 0.93;
+        const ringStep = maxR / 4;
+
         // Círculos de alcance
         for (let i = 1; i <= 4; i++) {
             radarCtx.beginPath();
-            radarCtx.arc(cx, cy, 30 * i, 0, Math.PI * 2);
-            radarCtx.strokeStyle = `rgba(57, 255, 20, ${0.05 + i * 0.02})`;
+            radarCtx.arc(cx, cy, ringStep * i, 0, Math.PI * 2);
+            radarCtx.strokeStyle = `rgba(57, 255, 20, ${0.04 + i * 0.015})`;
             radarCtx.lineWidth = 0.5;
             radarCtx.stroke();
         }
@@ -1264,8 +1317,8 @@
             const a = (i / 4) * Math.PI * 2;
             radarCtx.beginPath();
             radarCtx.moveTo(cx, cy);
-            radarCtx.lineTo(cx + Math.cos(a) * 140, cy + Math.sin(a) * 140);
-            radarCtx.strokeStyle = 'rgba(57, 255, 20, 0.06)';
+            radarCtx.lineTo(cx + Math.cos(a) * maxR, cy + Math.sin(a) * maxR);
+            radarCtx.strokeStyle = 'rgba(57, 255, 20, 0.05)';
             radarCtx.lineWidth = 0.5;
             radarCtx.stroke();
         }
@@ -1276,10 +1329,10 @@
 
         radarCtx.beginPath();
         radarCtx.moveTo(cx, cy);
-        radarCtx.arc(cx, cy, 140, radarAngle - 0.3, radarAngle);
+        radarCtx.arc(cx, cy, maxR, radarAngle - 0.3, radarAngle);
         radarCtx.closePath();
 
-        const sweepGrad = radarCtx.createRadialGradient(cx, cy, 0, cx, cy, 140);
+        const sweepGrad = radarCtx.createRadialGradient(cx, cy, 0, cx, cy, maxR);
         sweepGrad.addColorStop(0, 'rgba(57, 255, 20, 0.15)');
         sweepGrad.addColorStop(0.5, 'rgba(57, 255, 20, 0.05)');
         sweepGrad.addColorStop(1, 'rgba(57, 255, 20, 0)');
@@ -1289,7 +1342,7 @@
         // Línea del barrido
         radarCtx.beginPath();
         radarCtx.moveTo(cx, cy);
-        radarCtx.lineTo(cx + Math.cos(radarAngle) * 140, cy + Math.sin(radarAngle) * 140);
+        radarCtx.lineTo(cx + Math.cos(radarAngle) * maxR, cy + Math.sin(radarAngle) * maxR);
         radarCtx.strokeStyle = 'rgba(57, 255, 20, 0.6)';
         radarCtx.lineWidth = 1.5;
         radarCtx.shadowColor = '#39ff14';
@@ -1302,7 +1355,7 @@
             const pulse = 0.3 + Math.sin(radarFrame * blip.pulseSpeed + blip.phase) * 0.3;
             const dist = Math.sqrt((blip.x - cx) ** 2 + (blip.y - cy) ** 2);
 
-            if (dist < 140) {
+            if (dist < maxR) {
                 const alpha = blip.alpha * pulse;
                 radarCtx.beginPath();
                 radarCtx.arc(blip.x, blip.y, blip.size * (0.5 + pulse * 0.5), 0, Math.PI * 2);
@@ -1322,7 +1375,7 @@
 
         // Blip que sigue al mouse
         const d = Math.sqrt((radarMouseX - cx) ** 2 + (radarMouseY - cy) ** 2);
-        if (d < 140) {
+        if (d < maxR) {
             radarCtx.beginPath();
             radarCtx.arc(radarMouseX, radarMouseY, 6, 0, Math.PI * 2);
             radarCtx.fillStyle = 'rgba(0, 212, 255, 0.6)';
@@ -1347,47 +1400,75 @@
         radarCtx.fill();
         radarCtx.shadowBlur = 0;
 
+        radarCtx.setTransform(1, 0, 0, 1, 0, 0);
+
         requestAnimationFrame(drawRadar);
     }
 
     drawRadar();
 
     // ─────── SCROLL REVEAL — ANIMACIONES AL HACER SCROLL ───────
-    function isInView(el) {
+    function isInView(el, offset) {
         const rect = el.getBoundingClientRect();
-        return rect.top < window.innerHeight - 60;
+        return rect.top < window.innerHeight - (offset || 60);
     }
 
+    let staggerDone = { cards: false, stats: false, resources: false };
+
     function revealOnScroll() {
-        document.querySelectorAll('.section-title, .section-subtitle, .card, .timeline-item, .stat-card, .resource-link').forEach(el => {
+        document.querySelectorAll('.section-title, .section-subtitle, .timeline-item').forEach(el => {
             if (isInView(el) && !el.classList.contains('visible')) {
                 el.classList.add('visible');
-                // Stagger children
-                if (el.classList.contains('card')) {
-                    const cards = document.querySelectorAll('.card');
-                    cards.forEach((c, i) => {
-                        setTimeout(() => c.classList.add('visible'), i * 100);
-                    });
-                }
-                if (el.classList.contains('stat-card')) {
-                    const stats = document.querySelectorAll('.stat-card');
-                    stats.forEach((s, i) => {
-                        setTimeout(() => s.classList.add('visible'), i * 150);
-                    });
-                }
-                if (el.classList.contains('resource-link')) {
-                    const links = document.querySelectorAll('.resource-link');
-                    links.forEach((l, i) => {
-                        setTimeout(() => l.classList.add('visible'), i * 100);
-                    });
-                }
             }
         });
+
+        // Stagger cards una sola vez
+        if (!staggerDone.cards && isInView(document.getElementById('cards-grid'), 100)) {
+            staggerDone.cards = true;
+            document.querySelectorAll('.card').forEach((c, i) => {
+                setTimeout(() => c.classList.add('visible'), i * 100);
+            });
+        }
+
+        // Stagger stats una sola vez
+        if (!staggerDone.stats) {
+            const statsSection = document.getElementById('datos');
+            if (isInView(statsSection, 100)) {
+                staggerDone.stats = true;
+                document.querySelectorAll('.stat-card').forEach((s, i) => {
+                    setTimeout(() => s.classList.add('visible'), i * 150);
+                });
+            }
+        }
+
+        // Stagger resources una sola vez
+        if (!staggerDone.resources) {
+            const resourcesSection = document.getElementById('recursos');
+            if (isInView(resourcesSection, 100)) {
+                staggerDone.resources = true;
+                document.querySelectorAll('.resource-link').forEach((l, i) => {
+                    setTimeout(() => l.classList.add('visible'), i * 100);
+                });
+            }
+        }
     }
+
+    // Usar rAF para throttle del scroll
+    let scrollTicking = false;
+    window.addEventListener('scroll', () => {
+        if (!scrollTicking) {
+            requestAnimationFrame(() => {
+                revealOnScroll();
+                animateCounters();
+                scrollTicking = false;
+            });
+            scrollTicking = true;
+        }
+    });
 
     // Inmediatamente para elementos ya visibles
     revealOnScroll();
-    window.addEventListener('scroll', revealOnScroll);
+    animateCounters();
 
     // ─────── CARDS CON EFECTO 3D TILT ───────
     document.querySelectorAll('.card').forEach(card => {
@@ -1438,14 +1519,7 @@
 
     window.addEventListener('scroll', animateCounters);
 
-    // ─────── RESIZE ───────
-    window.addEventListener('resize', () => {
-        stars = stars.map(s => ({
-            ...s,
-            x: Math.random() * window.innerWidth,
-            y: Math.random() * window.innerHeight
-        }));
-    });
+
 </script>
 </body>
 </html>
