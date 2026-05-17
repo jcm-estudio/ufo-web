@@ -873,64 +873,124 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-    // ─────── CURSOR PERSONALIZADO ───────
-    const cursor = document.getElementById('cursor');
-    let mouseX = 0, mouseY = 0;
+'use strict';
 
-    document.addEventListener('mousemove', e => {
-        mouseX = e.clientX;
-        mouseY = e.clientY;
+(function() {
+  const App = {
+    modules: {},
+    rafId: null,
+
+    init() {
+      this.initCursor();
+      this.initProgressBar();
+      this.initTypeWriter();
+      this.initUFO3D();
+      this.initStarField();
+      this.initClickEffects();
+      this.initRadar();
+      this.initScrollReveal();
+      this.initCounters();
+      this.initCardTilt();
+    },
+
+    // ---------- utils ----------
+    qs(sel, ctx) { return (ctx || document).querySelector(sel); },
+    qsa(sel, ctx) { return Array.from((ctx || document).querySelectorAll(sel)); },
+    on(el, evt, fn, opts) {
+      if (!el) return;
+      (typeof el === 'string' ? this.qsa(el) : [el]).forEach(e => e.addEventListener(evt, fn, opts || {}));
+    },
+    getCanvas(id) {
+      const c = this.qs('#' + id);
+      if (!c) return null;
+      const ctx = c.getContext('2d');
+      return ctx ? { canvas: c, ctx } : null;
+    },
+    isInView(el, offset) {
+      if (!el) return false;
+      const r = el.getBoundingClientRect();
+      return r.top < window.innerHeight - (offset || 60);
+    },
+    debounceRAF(fn) {
+      let ticking = false;
+      return (...args) => {
+        if (!ticking) {
+          requestAnimationFrame(() => { fn(...args); ticking = false; });
+          ticking = true;
+        }
+      };
+    },
+
+    // ---------- 1. CURSOR ----------
+    initCursor() {
+      const cursor = this.qs('#cursor');
+      if (!cursor) return;
+      const dot = cursor.querySelector('.dot');
+
+      this.on(document, 'mousemove', e => {
         cursor.style.left = e.clientX + 'px';
         cursor.style.top = e.clientY + 'px';
-    });
+      });
 
-    document.querySelectorAll('a, button, .card, .resource-link, .stat-card').forEach(el => {
+      this.qsa('a, button, .card, .resource-link, .stat-card').forEach(el => {
         el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
         el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
-    });
+      });
+    },
 
-    // ─────── BARRA DE PROGRESO ───────
-    const progressBar = document.getElementById('progress-bar');
+    // ---------- 2. PROGRESS BAR ----------
+    initProgressBar() {
+      const bar = this.qs('#progress-bar');
+      if (!bar) return;
 
-    window.addEventListener('scroll', () => {
-        const scrollTop = window.scrollY;
-        const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-        const progress = (scrollTop / docHeight) * 100;
-        progressBar.style.width = progress + '%';
-    });
+      const update = this.debounceRAF(() => {
+        const p = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
+        bar.style.width = Math.min(p, 100) + '%';
+      });
 
-    // ─────── TÍTULO CON EFECTO DE MÁQUINA DE ESCRIBIR ───────
-    const titleEl = document.getElementById('typed-title');
-    const fullTitle = '¿ESTAMOS SOLOS?';
-    let charIndex = 0;
+      this.on(window, 'scroll', update);
+      this.on(window, 'resize', update);
+    },
 
-    titleEl.innerHTML = '';
+    // ---------- 3. TYPEWRITER ----------
+    initTypeWriter() {
+      const el = this.qs('#typed-title');
+      if (!el) return;
 
-    function typeTitle() {
-        if (charIndex < fullTitle.length) {
-            titleEl.innerHTML = fullTitle.slice(0, charIndex + 1) + '<span class="cursor-blink">|</span>';
-            charIndex++;
-            setTimeout(typeTitle, 80 + Math.random() * 60);
+      const text = '¿ESTAMOS SOLOS?';
+      let idx = 0;
+      el.innerHTML = '';
+
+      function tick() {
+        if (idx < text.length) {
+          el.innerHTML = text.slice(0, idx + 1) + '<span class="cursor-blink">|</span>';
+          idx++;
+          setTimeout(tick, 80 + Math.random() * 60);
         } else {
-            titleEl.innerHTML = fullTitle + '<span class="cursor-blink">|</span>';
+          el.innerHTML = text + '<span class="cursor-blink">|</span>';
         }
-    }
+      }
+      setTimeout(tick, 500);
+    },
 
-    setTimeout(typeTitle, 500);
+    // ---------- 4. THREE.JS UFO ----------
+    initUFO3D() {
+      if (typeof THREE === 'undefined') return;
 
-    // ─────── THREE.JS — OVNI 3D ───────
-    let ufoGroup, ringGroup;
-    let ufoMouseX = 0, ufoMouseY = 0;
+      const container = this.qs('#three-ufo');
+      if (!container) return;
 
-    function initThreeUFO() {
-        const container = document.getElementById('three-ufo');
+      let ufoGroup, ringGroup;
+      let time = 0;
+      let mouseX = 0, mouseY = 0;
+
+      try {
         const w = container.clientWidth || window.innerWidth;
         const h = container.clientHeight || window.innerHeight;
 
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000);
         camera.position.set(0, 2, 8);
-        camera.lookAt(0, 0, 0);
 
         const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
         renderer.setSize(w, h);
@@ -938,293 +998,242 @@
         container.appendChild(renderer.domElement);
 
         // Lights
-        const ambientLight = new THREE.AmbientLight(0x404060);
-        scene.add(ambientLight);
+        scene.add(new THREE.AmbientLight(0x404060));
 
-        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-        dirLight.position.set(5, 10, 7);
-        scene.add(dirLight);
+        const dl = new THREE.DirectionalLight(0xffffff, 1);
+        dl.position.set(5, 10, 7);
+        scene.add(dl);
 
-        const dirLight2 = new THREE.DirectionalLight(0x39ff14, 0.4);
-        dirLight2.position.set(-5, -3, 5);
-        scene.add(dirLight2);
+        const dl2 = new THREE.DirectionalLight(0x39ff14, 0.4);
+        dl2.position.set(-5, -3, 5);
+        scene.add(dl2);
 
-        const pointLight = new THREE.PointLight(0x00d4ff, 0.5, 10);
-        pointLight.position.set(0, 3, 2);
-        scene.add(pointLight);
+        const pl = new THREE.PointLight(0x00d4ff, 0.5, 10);
+        pl.position.set(0, 3, 2);
+        scene.add(pl);
 
-        // UFO Group
+        // Build UFO
         ufoGroup = new THREE.Group();
 
-        // Cuerpo principal (domo)
-        const bodyGeo = new THREE.SphereGeometry(1.4, 32, 32, 0, Math.PI * 2, 0, Math.PI / 2.5);
-        const bodyMat = new THREE.MeshStandardMaterial({
-            color: 0x2a2a3a,
-            metalness: 0.8,
-            roughness: 0.2,
-            emissive: 0x111122,
-            emissiveIntensity: 0.1
-        });
-        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        const body = new THREE.Mesh(
+          new THREE.SphereGeometry(1.4, 32, 32, 0, Math.PI * 2, 0, Math.PI / 2.5),
+          new THREE.MeshStandardMaterial({ color: 0x2a2a3a, metalness: 0.8, roughness: 0.2, emissive: 0x111122, emissiveIntensity: 0.1 })
+        );
         body.scale.set(1, 0.3, 1);
         body.position.y = 0.1;
         ufoGroup.add(body);
 
-        // Base inferior
-        const baseGeo = new THREE.CylinderGeometry(1.3, 1.6, 0.2, 32);
-        const baseMat = new THREE.MeshStandardMaterial({
-            color: 0x1a1a2e,
-            metalness: 0.9,
-            roughness: 0.15,
-            emissive: 0x0a0a1e,
-            emissiveIntensity: 0.2
-        });
-        const base = new THREE.Mesh(baseGeo, baseMat);
+        const base = new THREE.Mesh(
+          new THREE.CylinderGeometry(1.3, 1.6, 0.2, 32),
+          new THREE.MeshStandardMaterial({ color: 0x1a1a2e, metalness: 0.9, roughness: 0.15, emissive: 0x0a0a1e, emissiveIntensity: 0.2 })
+        );
         base.position.y = -0.15;
         ufoGroup.add(base);
 
-        // Domo superior (cabina)
-        const domeGeo = new THREE.SphereGeometry(0.6, 24, 24, 0, Math.PI * 2, 0, Math.PI / 2);
-        const domeMat = new THREE.MeshStandardMaterial({
-            color: 0x00d4ff,
-            metalness: 0.3,
-            roughness: 0.1,
-            transparent: true,
-            opacity: 0.6,
-            emissive: 0x00d4ff,
-            emissiveIntensity: 0.15
-        });
-        const dome = new THREE.Mesh(domeGeo, domeMat);
+        const dome = new THREE.Mesh(
+          new THREE.SphereGeometry(0.6, 24, 24, 0, Math.PI * 2, 0, Math.PI / 2),
+          new THREE.MeshStandardMaterial({ color: 0x00d4ff, metalness: 0.3, roughness: 0.1, transparent: true, opacity: 0.6, emissive: 0x00d4ff, emissiveIntensity: 0.15 })
+        );
         dome.position.y = 0.35;
         dome.scale.set(0.6, 0.3, 0.6);
         ufoGroup.add(dome);
 
-        // Anillo de luces
         ringGroup = new THREE.Group();
         for (let i = 0; i < 20; i++) {
-            const angle = (i / 20) * Math.PI * 2;
-            const lightGeo = new THREE.SphereGeometry(0.06, 8, 8);
-            const lightMat = new THREE.MeshStandardMaterial({
-                color: i % 2 === 0 ? 0x39ff14 : 0x00d4ff,
-                emissive: i % 2 === 0 ? 0x39ff14 : 0x00d4ff,
-                emissiveIntensity: 0.5
-            });
-            const lightMesh = new THREE.Mesh(lightGeo, lightMat);
-            lightMesh.position.set(Math.cos(angle) * 1.35, -0.08, Math.sin(angle) * 1.35);
-            ringGroup.add(lightMesh);
+          const a = (i / 20) * Math.PI * 2;
+          const m = new THREE.Mesh(
+            new THREE.SphereGeometry(0.06, 8, 8),
+            new THREE.MeshStandardMaterial({
+              color: i % 2 === 0 ? 0x39ff14 : 0x00d4ff,
+              emissive: i % 2 === 0 ? 0x39ff14 : 0x00d4ff,
+              emissiveIntensity: 0.5
+            })
+          );
+          m.position.set(Math.cos(a) * 1.35, -0.08, Math.sin(a) * 1.35);
+          ringGroup.add(m);
         }
         ufoGroup.add(ringGroup);
 
-        // Luces inferiores (pulsantes)
         for (let i = 0; i < 12; i++) {
-            const angle = (i / 12) * Math.PI * 2;
-            const lightGeo = new THREE.SphereGeometry(0.04, 6, 6);
-            const lightMat = new THREE.MeshStandardMaterial({
-                color: 0x39ff14,
-                emissive: 0x39ff14,
-                emissiveIntensity: 0.3
-            });
-            const lightMesh = new THREE.Mesh(lightGeo, lightMat);
-            lightMesh.position.set(Math.cos(angle) * 1.45, -0.2 + Math.sin(angle) * 0.05, Math.sin(angle) * 1.45);
-            ufoGroup.add(lightMesh);
+          const a = (i / 12) * Math.PI * 2;
+          const m = new THREE.Mesh(
+            new THREE.SphereGeometry(0.04, 6, 6),
+            new THREE.MeshStandardMaterial({ color: 0x39ff14, emissive: 0x39ff14, emissiveIntensity: 0.3 })
+          );
+          m.position.set(Math.cos(a) * 1.45, -0.2 + Math.sin(a) * 0.05, Math.sin(a) * 1.45);
+          ufoGroup.add(m);
         }
 
         ufoGroup.scale.set(0.9, 0.9, 0.9);
         scene.add(ufoGroup);
 
-        // Pequeñas partículas alrededor
-        const particleCount = 60;
-        const particleGeo = new THREE.BufferGeometry();
-        const positions = new Float32Array(particleCount * 3);
-        const particleSpeeds = [];
-        for (let i = 0; i < particleCount; i++) {
-            const theta = Math.random() * Math.PI * 2;
-            const phi = Math.acos(2 * Math.random() - 1);
-            const r = 2 + Math.random() * 1.5;
-            positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
-            positions[i * 3 + 1] = r * Math.cos(phi) * 0.3;
-            positions[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
-            particleSpeeds.push({
-                theta: theta,
-                phi: phi,
-                r: r,
-                speed: 0.002 + Math.random() * 0.005
-            });
+        // Particles
+        const pc = 60;
+        const pg = new THREE.BufferGeometry();
+        const pos = new Float32Array(pc * 3);
+        const pData = [];
+        for (let i = 0; i < pc; i++) {
+          const theta = Math.random() * Math.PI * 2;
+          const phi = Math.acos(2 * Math.random() - 1);
+          const r = 2 + Math.random() * 1.5;
+          pos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+          pos[i * 3 + 1] = r * Math.cos(phi) * 0.3;
+          pos[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
+          pData.push({ theta, phi, r, speed: 0.002 + Math.random() * 0.005 });
         }
-        particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        const particleMat = new THREE.PointsMaterial({
-            color: 0x00d4ff,
-            size: 0.04,
-            transparent: true,
-            opacity: 0.6,
-            blending: THREE.AdditiveBlending
-        });
-        const particleSystem = new THREE.Points(particleGeo, particleMat);
-        scene.add(particleSystem);
+        pg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        const ps = new THREE.Points(
+          pg,
+          new THREE.PointsMaterial({ color: 0x00d4ff, size: 0.04, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending })
+        );
+        scene.add(ps);
 
-        // Animación
-        let time = 0;
+        // Track mouse for UFO
+        this.on(document, 'mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
 
+        // Animation loop (inside UFO module)
         function animate() {
-            requestAnimationFrame(animate);
-            time += 0.01;
+          App.rafId = requestAnimationFrame(animate);
+          time += 0.01;
 
-            const targetRotY = (ufoMouseX / window.innerWidth) * 0.3;
-            const targetRotX = (ufoMouseY / window.innerHeight) * 0.15;
+          const tgtY = (mouseX / window.innerWidth) * 0.3;
+          const tgtX = (mouseY / window.innerHeight) * 0.15;
+          ufoGroup.rotation.y += (tgtY - ufoGroup.rotation.y) * 0.05;
+          ufoGroup.rotation.x += (-tgtX - ufoGroup.rotation.x) * 0.05;
+          ufoGroup.position.y = Math.sin(time * 0.8) * 0.15;
+          ufoGroup.rotation.z = Math.sin(time * 0.5) * 0.03;
 
-            ufoGroup.rotation.y += (targetRotY - ufoGroup.rotation.y) * 0.05;
-            ufoGroup.rotation.x += (-targetRotX - ufoGroup.rotation.x) * 0.05;
+          ringGroup.rotation.y += 0.02;
+          ringGroup.children.forEach((ch, i) => {
+            const p = 0.4 + Math.sin(time * 3 + i) * 0.4;
+            ch.material.emissiveIntensity = p;
+            ch.scale.setScalar(0.8 + p * 0.4);
+          });
 
-            ufoGroup.position.y = Math.sin(time * 0.8) * 0.15;
-            ufoGroup.rotation.z = Math.sin(time * 0.5) * 0.03;
+          const pp = ps.geometry.attributes.position.array;
+          for (let i = 0; i < pc; i++) {
+            const d = pData[i];
+            d.theta += d.speed;
+            const rr = d.r + Math.sin(time + i) * 0.2;
+            pp[i * 3] = rr * Math.sin(d.phi) * Math.cos(d.theta);
+            pp[i * 3 + 1] = rr * Math.cos(d.phi) * 0.3;
+            pp[i * 3 + 2] = rr * Math.sin(d.phi) * Math.sin(d.theta);
+          }
+          ps.geometry.attributes.position.needsUpdate = true;
 
-            // Rotar anillo de luces
-            ringGroup.rotation.y += 0.02;
+          pl.position.x = ufoGroup.position.x + 2;
+          pl.position.y = ufoGroup.position.y + 3;
 
-            // Pulsar luces del anillo
-            ringGroup.children.forEach((child, i) => {
-                const pulse = 0.4 + Math.sin(time * 3 + i) * 0.4;
-                child.material.emissiveIntensity = pulse;
-                child.scale.setScalar(0.8 + pulse * 0.4);
-            });
-
-            // Rotar partículas
-            const pos = particleSystem.geometry.attributes.position.array;
-            for (let i = 0; i < particleCount; i++) {
-                const data = particleSpeeds[i];
-                data.theta += data.speed;
-                const rr = data.r + Math.sin(time + i) * 0.2;
-                pos[i * 3] = rr * Math.sin(data.phi) * Math.cos(data.theta);
-                pos[i * 3 + 1] = rr * Math.cos(data.phi) * 0.3;
-                pos[i * 3 + 2] = rr * Math.sin(data.phi) * Math.sin(data.theta);
-            }
-            particleSystem.geometry.attributes.position.needsUpdate = true;
-
-            // Punto de luz sigue al UFO
-            pointLight.position.x = ufoGroup.position.x + 2;
-            pointLight.position.y = ufoGroup.position.y + 3;
-
-            renderer.render(scene, camera);
+          renderer.render(scene, camera);
         }
 
         animate();
 
         // Resize
-        const resizeObserver = new ResizeObserver(() => {
-            const w2 = container.clientWidth;
-            const h2 = container.clientHeight;
-            camera.aspect = w2 / h2;
-            camera.updateProjectionMatrix();
-            renderer.setSize(w2, h2);
-        });
-        resizeObserver.observe(container);
-    }
-
-    try {
-        initThreeUFO();
-    } catch (e) {
-        console.warn('Three.js no disponible:', e);
-    }
-
-    document.addEventListener('mousemove', e => {
-        ufoMouseX = e.clientX;
-        ufoMouseY = e.clientY;
-    });
-
-    // ─────── FONDO DE ESTRELLAS (Canvas 2D) ───────
-    const starCanvas = document.getElementById('ufo-canvas');
-    const starCtx = starCanvas.getContext('2d');
-    let stars = [];
-    let starMouseX = 0, starMouseY = 0;
-
-    function resizeStarCanvas() {
-        const oldW = starCanvas.width;
-        const oldH = starCanvas.height;
-        starCanvas.width = window.innerWidth;
-        starCanvas.height = window.innerHeight;
-
-        // Reposicionar estrellas proporcionalmente en lugar de aleatorio
-        const scaleX = starCanvas.width / (oldW || starCanvas.width);
-        const scaleY = starCanvas.height / (oldH || starCanvas.height);
-        for (const s of stars) {
-            s.x *= scaleX;
-            s.y *= scaleY;
+        if (window.ResizeObserver) {
+          const ro = new ResizeObserver(() => {
+            const w2 = container.clientWidth, h2 = container.clientHeight;
+            if (w2 && h2) { camera.aspect = w2 / h2; camera.updateProjectionMatrix(); renderer.setSize(w2, h2); }
+          });
+          ro.observe(container);
         }
+      } catch (e) {
+        if (container) container.innerHTML = '';
+        console.warn('UFO 3D init failed:', e.message);
+      }
+    },
 
-        // Agregar estrellas si la ventana creció
-        while (stars.length < 400) {
-            stars.push({
-                x: Math.random() * starCanvas.width,
-                y: Math.random() * starCanvas.height,
-                size: Math.random() * 2 + 0.5,
-                alpha: Math.random() * 0.7 + 0.3,
-                speed: 0.1 + Math.random() * 0.3,
-                twinkleSpeed: 0.005 + Math.random() * 0.02,
-                twinklePhase: Math.random() * Math.PI * 2
-            });
-        }
-    }
-    resizeStarCanvas();
-    window.addEventListener('resize', resizeStarCanvas);
+    // ---------- 5. STAR FIELD ----------
+    initStarField() {
+      const gc = this.getCanvas('ufo-canvas');
+      if (!gc) return;
 
-    for (let i = 0; i < 400; i++) {
+      const { canvas, ctx } = gc;
+      let stars = [];
+      let mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2;
+      let frame = 0;
+
+      const STAR_COUNT = 400;
+
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      resize();
+
+      for (let i = 0; i < STAR_COUNT; i++) {
         stars.push({
-            x: Math.random() * window.innerWidth,
-            y: Math.random() * window.innerHeight,
-            size: Math.random() * 2 + 0.5,
-            alpha: Math.random() * 0.7 + 0.3,
-            speed: 0.1 + Math.random() * 0.3,
-            twinkleSpeed: 0.005 + Math.random() * 0.02,
-            twinklePhase: Math.random() * Math.PI * 2
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          size: Math.random() * 2 + 0.5,
+          alpha: Math.random() * 0.7 + 0.3,
+          speed: 0.1 + Math.random() * 0.3,
+          twinkleSpeed: 0.005 + Math.random() * 0.02,
+          twinklePhase: Math.random() * Math.PI * 2
         });
-    }
+      }
 
-    let frame = 0;
+      function onResize() {
+        const oldW = canvas.width, oldH = canvas.height;
+        resize();
+        const sx = canvas.width / (oldW || canvas.width);
+        const sy = canvas.height / (oldH || canvas.height);
+        stars.forEach(s => { s.x *= sx; s.y *= sy; });
+        while (stars.length < STAR_COUNT) {
+          stars.push({
+            x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+            size: Math.random() * 2 + 0.5, alpha: Math.random() * 0.7 + 0.3,
+            speed: 0.1 + Math.random() * 0.3, twinkleSpeed: 0.005 + Math.random() * 0.02,
+            twinklePhase: Math.random() * Math.PI * 2
+          });
+        }
+      }
 
-    function drawStars() {
+      const debouncedResize = this.debounceRAF(onResize);
+      this.on(window, 'resize', debouncedResize);
+      this.on(document, 'mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
+
+      function draw() {
         frame++;
-        starCtx.clearRect(0, 0, starCanvas.width, starCanvas.height);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        const dx = (starMouseX - window.innerWidth / 2) * 0.01;
-        const dy = (starMouseY - window.innerHeight / 2) * 0.01;
+        const dx = (mouseX - canvas.width / 2) * 0.01;
+        const dy = (mouseY - canvas.height / 2) * 0.01;
 
         for (const s of stars) {
-            const twinkle = Math.sin(frame * s.twinkleSpeed + s.twinklePhase);
-            const currentAlpha = s.alpha * (0.5 + twinkle * 0.5);
-            const parallaxX = s.x - dx * s.speed * 20;
-            const parallaxY = s.y - dy * s.speed * 20;
+          const twinkle = Math.sin(frame * s.twinkleSpeed + s.twinklePhase);
+          const alpha = s.alpha * (0.5 + twinkle * 0.5);
+          const px = s.x - dx * s.speed * 20;
+          const py = s.y - dy * s.speed * 20;
 
-            starCtx.beginPath();
-            starCtx.arc(parallaxX, parallaxY, s.size, 0, Math.PI * 2);
-            starCtx.fillStyle = `rgba(200, 220, 255, ${currentAlpha})`;
-            starCtx.fill();
+          ctx.beginPath();
+          ctx.arc(px, py, s.size, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(200, 220, 255,' + alpha + ')';
+          ctx.fill();
 
-            // Brillo ocasional
-            if (twinkle > 0.85 && s.size > 1.2) {
-                starCtx.beginPath();
-                starCtx.arc(parallaxX, parallaxY, s.size * 3, 0, Math.PI * 2);
-                starCtx.fillStyle = `rgba(200, 220, 255, ${currentAlpha * 0.15})`;
-                starCtx.fill();
-            }
+          if (twinkle > 0.85 && s.size > 1.2) {
+            ctx.beginPath();
+            ctx.arc(px, py, s.size * 3, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(200, 220, 255,' + (alpha * 0.15) + ')';
+            ctx.fill();
+          }
         }
+        requestAnimationFrame(draw);
+      }
 
-        requestAnimationFrame(drawStars);
-    }
+      draw();
+    },
 
-    drawStars();
+    // ---------- 6. CLICK EFFECTS ----------
+    initClickEffects() {
+      let toastTimeout = null;
 
-    document.addEventListener('mousemove', e => {
-        starMouseX = e.clientX;
-        starMouseY = e.clientY;
-    });
-
-    // ─────── CLIC — LANZAR OVNI ───────
-    document.addEventListener('click', e => {
+      this.on(document, 'click', e => {
         if (e.target.closest('a') || e.target.closest('.hero-cta')) return;
 
         const ufo = document.createElement('div');
         ufo.className = 'spawn-ufo';
-        ufo.textContent = '🛸';
+        ufo.textContent = '\u{1F6F8}';
         ufo.style.left = e.clientX + 'px';
         ufo.style.top = e.clientY + 'px';
 
@@ -1236,313 +1245,282 @@
 
         document.body.appendChild(ufo);
 
-        // Partículas de estela
         for (let i = 0; i < 8; i++) {
-            const trail = document.createElement('div');
-            trail.className = 'trail-particle';
-            trail.style.left = (e.clientX + (Math.random() - 0.5) * 10) + 'px';
-            trail.style.top = (e.clientY + (Math.random() - 0.5) * 10) + 'px';
-            trail.style.background = i % 2 === 0 ? '#39ff14' : '#00d4ff';
-            trail.style.boxShadow = i % 2 === 0 ? '0 0 6px #39ff14' : '0 0 6px #00d4ff';
-            document.body.appendChild(trail);
-            setTimeout(() => trail.remove(), 800);
+          const t = document.createElement('div');
+          t.className = 'trail-particle';
+          t.style.left = (e.clientX + (Math.random() - 0.5) * 10) + 'px';
+          t.style.top = (e.clientY + (Math.random() - 0.5) * 10) + 'px';
+          t.style.background = i % 2 === 0 ? '#39ff14' : '#00d4ff';
+          t.style.boxShadow = i % 2 === 0 ? '0 0 6px #39ff14' : '0 0 6px #00d4ff';
+          document.body.appendChild(t);
+          setTimeout(() => t.remove(), 800);
         }
 
         setTimeout(() => ufo.remove(), 3000);
 
-        // Toast
-        const toast = document.getElementById('toast');
-        toast.textContent = '🛸 Señal detectada — ' + (Math.random() * 100).toFixed(1) + ' MHz';
-        toast.classList.add('show');
-        clearTimeout(toast._timeout);
-        toast._timeout = setTimeout(() => toast.classList.remove('show'), 2000);
-    });
-
-    // ─────── RADAR INTERACTIVO ───────
-    const radarCanvas = document.getElementById('radar-canvas');
-    const radarCtx = radarCanvas.getContext('2d');
-    let radarAngle = 0;
-    let radarBlips = [];
-    let radarMouseX = 150, radarMouseY = 150;
-    let radarW, radarHalf;
-
-    function resizeRadar() {
-        const container = radarCanvas.parentElement;
-        const size = container.clientWidth;
-        const dpr = window.devicePixelRatio || 1;
-        radarCanvas.width = size * dpr;
-        radarCanvas.height = size * dpr;
-        radarCanvas.style.width = size + 'px';
-        radarCanvas.style.height = size + 'px';
-        radarW = size;
-        radarHalf = size / 2;
-
-        // Re-generar blips proporcionales al tamaño
-        radarBlips = [];
-        for (let i = 0; i < 12; i++) {
-            const margin = size * 0.03;
-            radarBlips.push({
-                x: margin + Math.random() * (size - margin * 2),
-                y: margin + Math.random() * (size - margin * 2),
-                size: 3 + Math.random() * 5,
-                alpha: 0.1 + Math.random() * 0.3,
-                pulseSpeed: 0.02 + Math.random() * 0.03,
-                phase: Math.random() * Math.PI * 2
-            });
+        const toast = this.qs('#toast');
+        if (toast) {
+          toast.textContent = '\u{1F6F8} Señal detectada \u2014 ' + (Math.random() * 100).toFixed(1) + ' MHz';
+          toast.classList.add('show');
+          clearTimeout(toastTimeout);
+          toastTimeout = setTimeout(() => toast.classList.remove('show'), 2000);
         }
-    }
-    resizeRadar();
-    window.addEventListener('resize', resizeRadar);
+      });
+    },
 
-    radarCanvas.addEventListener('mousemove', e => {
-        const rect = radarCanvas.getBoundingClientRect();
-        radarMouseX = e.clientX - rect.left;
-        radarMouseY = e.clientY - rect.top;
-    });
+    // ---------- 7. RADAR ----------
+    initRadar() {
+      const gc = this.getCanvas('radar-canvas');
+      if (!gc) return;
 
-    radarCanvas.addEventListener('mouseleave', () => {
-        radarMouseX = radarHalf;
-        radarMouseY = radarHalf;
-    });
+      const { canvas, ctx } = gc;
+      let angle = 0, blips = [], frame = 0;
+      let mouseX, mouseY, size, half;
 
-    let radarFrame = 0;
-
-    function drawRadar() {
-        radarFrame++;
-        const w = radarW, h = radarW, cx = radarHalf, cy = radarHalf;
+      function resize() {
+        const parent = canvas.parentElement;
+        if (!parent) return;
+        size = parent.clientWidth || 300;
+        half = size / 2;
         const dpr = window.devicePixelRatio || 1;
-        radarCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        canvas.width = size * dpr;
+        canvas.height = size * dpr;
+        canvas.style.width = size + 'px';
+        canvas.style.height = size + 'px';
 
-        radarCtx.clearRect(0, 0, w, h);
+        const margin = size * 0.03;
+        blips = Array.from({ length: 12 }, () => ({
+          x: margin + Math.random() * (size - margin * 2),
+          y: margin + Math.random() * (size - margin * 2),
+          sz: 3 + Math.random() * 5,
+          alpha: 0.1 + Math.random() * 0.3,
+          pulse: 0.02 + Math.random() * 0.03,
+          phase: Math.random() * Math.PI * 2
+        }));
+      }
 
-        // Fondo
-        const grad = radarCtx.createRadialGradient(cx, cy, 0, cx, cy, radarHalf);
-        grad.addColorStop(0, 'rgba(0, 212, 255, 0.03)');
-        grad.addColorStop(0.5, 'rgba(0, 212, 255, 0.01)');
-        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        radarCtx.fillStyle = grad;
-        radarCtx.fillRect(0, 0, w, h);
+      mouseX = mouseY = 150;
+      resize();
 
-        const maxR = radarHalf * 0.93;
-        const ringStep = maxR / 4;
+      const debouncedResize = this.debounceRAF(resize);
+      this.on(window, 'resize', debouncedResize);
 
-        // Círculos de alcance
+      this.on(canvas, 'mousemove', e => {
+        const r = canvas.getBoundingClientRect();
+        mouseX = e.clientX - r.left;
+        mouseY = e.clientY - r.top;
+      });
+      this.on(canvas, 'mouseleave', () => { mouseX = half; mouseY = half; });
+
+      function draw() {
+        frame++;
+        const dpr = window.devicePixelRatio || 1;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, size, size);
+
+        const maxR = half * 0.93;
+        const step = maxR / 4;
+
+        // Rings
         for (let i = 1; i <= 4; i++) {
-            radarCtx.beginPath();
-            radarCtx.arc(cx, cy, ringStep * i, 0, Math.PI * 2);
-            radarCtx.strokeStyle = `rgba(57, 255, 20, ${0.04 + i * 0.015})`;
-            radarCtx.lineWidth = 0.5;
-            radarCtx.stroke();
+          ctx.beginPath();
+          ctx.arc(half, half, step * i, 0, Math.PI * 2);
+          ctx.strokeStyle = 'rgba(57,255,20,' + (0.04 + i * 0.015) + ')';
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
         }
 
-        // Líneas de cuadrante
+        // Quadrants
         for (let i = 0; i < 4; i++) {
-            const a = (i / 4) * Math.PI * 2;
-            radarCtx.beginPath();
-            radarCtx.moveTo(cx, cy);
-            radarCtx.lineTo(cx + Math.cos(a) * maxR, cy + Math.sin(a) * maxR);
-            radarCtx.strokeStyle = 'rgba(57, 255, 20, 0.05)';
-            radarCtx.lineWidth = 0.5;
-            radarCtx.stroke();
+          const a = (i / 4) * Math.PI * 2;
+          ctx.beginPath();
+          ctx.moveTo(half, half);
+          ctx.lineTo(half + Math.cos(a) * maxR, half + Math.sin(a) * maxR);
+          ctx.strokeStyle = 'rgba(57,255,20,0.05)';
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
         }
 
-        // Barrido del radar
-        radarAngle += 0.02;
-        if (radarAngle > Math.PI * 2) radarAngle -= Math.PI * 2;
+        // Sweep
+        angle += 0.02;
+        if (angle > Math.PI * 2) angle -= Math.PI * 2;
 
-        radarCtx.beginPath();
-        radarCtx.moveTo(cx, cy);
-        radarCtx.arc(cx, cy, maxR, radarAngle - 0.3, radarAngle);
-        radarCtx.closePath();
+        ctx.beginPath();
+        ctx.moveTo(half, half);
+        ctx.arc(half, half, maxR, angle - 0.3, angle);
+        ctx.closePath();
+        const sg = ctx.createRadialGradient(half, half, 0, half, half, maxR);
+        sg.addColorStop(0, 'rgba(57,255,20,0.15)');
+        sg.addColorStop(0.5, 'rgba(57,255,20,0.05)');
+        sg.addColorStop(1, 'rgba(57,255,20,0)');
+        ctx.fillStyle = sg;
+        ctx.fill();
 
-        const sweepGrad = radarCtx.createRadialGradient(cx, cy, 0, cx, cy, maxR);
-        sweepGrad.addColorStop(0, 'rgba(57, 255, 20, 0.15)');
-        sweepGrad.addColorStop(0.5, 'rgba(57, 255, 20, 0.05)');
-        sweepGrad.addColorStop(1, 'rgba(57, 255, 20, 0)');
-        radarCtx.fillStyle = sweepGrad;
-        radarCtx.fill();
+        ctx.beginPath();
+        ctx.moveTo(half, half);
+        ctx.lineTo(half + Math.cos(angle) * maxR, half + Math.sin(angle) * maxR);
+        ctx.strokeStyle = 'rgba(57,255,20,0.6)';
+        ctx.lineWidth = 1.5;
+        ctx.shadowColor = '#39ff14';
+        ctx.shadowBlur = 10;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
 
-        // Línea del barrido
-        radarCtx.beginPath();
-        radarCtx.moveTo(cx, cy);
-        radarCtx.lineTo(cx + Math.cos(radarAngle) * maxR, cy + Math.sin(radarAngle) * maxR);
-        radarCtx.strokeStyle = 'rgba(57, 255, 20, 0.6)';
-        radarCtx.lineWidth = 1.5;
-        radarCtx.shadowColor = '#39ff14';
-        radarCtx.shadowBlur = 10;
-        radarCtx.stroke();
-        radarCtx.shadowBlur = 0;
+        // Blips
+        for (const b of blips) {
+          const pulse = 0.3 + Math.sin(frame * b.pulse + b.phase) * 0.3;
+          const dist = Math.sqrt((b.x - half) ** 2 + (b.y - half) ** 2);
+          if (dist >= maxR) continue;
 
-        // Blips con pulsación
-        for (const blip of radarBlips) {
-            const pulse = 0.3 + Math.sin(radarFrame * blip.pulseSpeed + blip.phase) * 0.3;
-            const dist = Math.sqrt((blip.x - cx) ** 2 + (blip.y - cy) ** 2);
-
-            if (dist < maxR) {
-                const alpha = blip.alpha * pulse;
-                radarCtx.beginPath();
-                radarCtx.arc(blip.x, blip.y, blip.size * (0.5 + pulse * 0.5), 0, Math.PI * 2);
-                radarCtx.fillStyle = `rgba(57, 255, 20, ${alpha})`;
-                radarCtx.shadowColor = '#39ff14';
-                radarCtx.shadowBlur = 8;
-                radarCtx.fill();
-
-                radarCtx.beginPath();
-                radarCtx.arc(blip.x, blip.y, blip.size * 1.5, 0, Math.PI * 2);
-                radarCtx.fillStyle = `rgba(57, 255, 20, ${alpha * 0.2})`;
-                radarCtx.shadowBlur = 15;
-                radarCtx.fill();
-                radarCtx.shadowBlur = 0;
-            }
+          const alpha = b.alpha * pulse;
+          const r = b.sz * (0.5 + pulse * 0.5);
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, r, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(57,255,20,' + alpha + ')';
+          ctx.shadowColor = '#39ff14';
+          ctx.shadowBlur = 8;
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, r * 1.5, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(57,255,20,' + (alpha * 0.2) + ')';
+          ctx.shadowBlur = 15;
+          ctx.fill();
+          ctx.shadowBlur = 0;
         }
 
-        // Blip que sigue al mouse
-        const d = Math.sqrt((radarMouseX - cx) ** 2 + (radarMouseY - cy) ** 2);
-        if (d < maxR) {
-            radarCtx.beginPath();
-            radarCtx.arc(radarMouseX, radarMouseY, 6, 0, Math.PI * 2);
-            radarCtx.fillStyle = 'rgba(0, 212, 255, 0.6)';
-            radarCtx.shadowColor = '#00d4ff';
-            radarCtx.shadowBlur = 20;
-            radarCtx.fill();
-
-            radarCtx.beginPath();
-            radarCtx.arc(radarMouseX, radarMouseY, 14, 0, Math.PI * 2);
-            radarCtx.fillStyle = 'rgba(0, 212, 255, 0.1)';
-            radarCtx.shadowBlur = 30;
-            radarCtx.fill();
-            radarCtx.shadowBlur = 0;
+        // Mouse blip
+        if (mouseX !== undefined) {
+          const d = Math.sqrt((mouseX - half) ** 2 + (mouseY - half) ** 2);
+          if (d < maxR) {
+            ctx.beginPath();
+            ctx.arc(mouseX, mouseY, 6, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0,212,255,0.6)';
+            ctx.shadowColor = '#00d4ff';
+            ctx.shadowBlur = 20;
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(mouseX, mouseY, 14, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0,212,255,0.1)';
+            ctx.shadowBlur = 30;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+          }
         }
 
-        // Centro
-        radarCtx.beginPath();
-        radarCtx.arc(cx, cy, 3, 0, Math.PI * 2);
-        radarCtx.fillStyle = '#39ff14';
-        radarCtx.shadowColor = '#39ff14';
-        radarCtx.shadowBlur = 10;
-        radarCtx.fill();
-        radarCtx.shadowBlur = 0;
+        // Center
+        ctx.beginPath();
+        ctx.arc(half, half, 3, 0, Math.PI * 2);
+        ctx.fillStyle = '#39ff14';
+        ctx.shadowColor = '#39ff14';
+        ctx.shadowBlur = 10;
+        ctx.fill();
+        ctx.shadowBlur = 0;
 
-        radarCtx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        requestAnimationFrame(draw);
+      }
 
-        requestAnimationFrame(drawRadar);
-    }
+      draw();
+    },
 
-    drawRadar();
+    // ---------- 8. SCROLL REVEAL ----------
+    initScrollReveal() {
+      const state = { cards: false, stats: false, resources: false };
 
-    // ─────── SCROLL REVEAL — ANIMACIONES AL HACER SCROLL ───────
-    function isInView(el, offset) {
-        const rect = el.getBoundingClientRect();
-        return rect.top < window.innerHeight - (offset || 60);
-    }
-
-    let staggerDone = { cards: false, stats: false, resources: false };
-
-    function revealOnScroll() {
-        document.querySelectorAll('.section-title, .section-subtitle, .timeline-item').forEach(el => {
-            if (isInView(el) && !el.classList.contains('visible')) {
-                el.classList.add('visible');
-            }
+      function reveal() {
+        // Simple items
+        App.qsa('.section-title, .section-subtitle, .timeline-item').forEach(el => {
+          if (App.isInView(el) && !el.classList.contains('visible')) {
+            el.classList.add('visible');
+          }
         });
 
-        // Stagger cards una sola vez
-        if (!staggerDone.cards && isInView(document.getElementById('cards-grid'), 100)) {
-            staggerDone.cards = true;
-            document.querySelectorAll('.card').forEach((c, i) => {
-                setTimeout(() => c.classList.add('visible'), i * 100);
-            });
+        // Staggered groups (one shot)
+        if (!state.cards && App.isInView(App.qs('#cards-grid'), 100)) {
+          state.cards = true;
+          App.qsa('.card').forEach((c, i) => setTimeout(() => c.classList.add('visible'), i * 100));
         }
-
-        // Stagger stats una sola vez
-        if (!staggerDone.stats) {
-            const statsSection = document.getElementById('datos');
-            if (isInView(statsSection, 100)) {
-                staggerDone.stats = true;
-                document.querySelectorAll('.stat-card').forEach((s, i) => {
-                    setTimeout(() => s.classList.add('visible'), i * 150);
-                });
-            }
+        if (!state.stats) {
+          const sec = App.qs('#datos');
+          if (sec && App.isInView(sec, 100)) {
+            state.stats = true;
+            App.qsa('.stat-card').forEach((s, i) => setTimeout(() => s.classList.add('visible'), i * 150));
+          }
         }
-
-        // Stagger resources una sola vez
-        if (!staggerDone.resources) {
-            const resourcesSection = document.getElementById('recursos');
-            if (isInView(resourcesSection, 100)) {
-                staggerDone.resources = true;
-                document.querySelectorAll('.resource-link').forEach((l, i) => {
-                    setTimeout(() => l.classList.add('visible'), i * 100);
-                });
-            }
+        if (!state.resources) {
+          const sec = App.qs('#recursos');
+          if (sec && App.isInView(sec, 100)) {
+            state.resources = true;
+            App.qsa('.resource-link').forEach((l, i) => setTimeout(() => l.classList.add('visible'), i * 100));
+          }
         }
-    }
+      }
 
-    // Usar rAF para throttle del scroll
-    let scrollTicking = false;
-    window.addEventListener('scroll', () => {
-        if (!scrollTicking) {
-            requestAnimationFrame(() => {
-                revealOnScroll();
-                animateCounters();
-                scrollTicking = false;
-            });
-            scrollTicking = true;
-        }
-    });
+      const throttled = this.debounceRAF(reveal);
+      this.on(window, 'scroll', throttled);
+      reveal();
+    },
 
-    // Inmediatamente para elementos ya visibles
-    revealOnScroll();
-    animateCounters();
+    // ---------- 9. COUNTERS ----------
+    initCounters() {
+      let done = false;
 
-    // ─────── CARDS CON EFECTO 3D TILT ───────
-    document.querySelectorAll('.card').forEach(card => {
+      const animate = () => {
+        if (done) return;
+        const sec = App.qs('#datos');
+        if (!sec || !App.isInView(sec)) return;
+        done = true;
+
+        App.qsa('.stat-number').forEach(el => {
+          const target = parseInt(el.dataset.target, 10);
+          if (isNaN(target)) return;
+          const suffix = el.querySelector('span') ? el.querySelector('span').outerHTML : '';
+          let current = 0;
+          const step = Math.ceil(target / 60);
+          const id = setInterval(() => {
+            current = Math.min(current + step, target);
+            el.innerHTML = current.toLocaleString() + suffix;
+            if (current >= target) clearInterval(id);
+          }, 20);
+        });
+      };
+
+      const throttled = this.debounceRAF(animate);
+      this.on(window, 'scroll', throttled);
+      animate();
+    },
+
+    // ---------- 10. CARD TILT ----------
+    initCardTilt() {
+      this.qsa('.card').forEach(card => {
+        let rafId = null;
+
         card.addEventListener('mousemove', e => {
-            const rect = card.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            const centerX = rect.width / 2;
-            const centerY = rect.height / 2;
-            const rotX = ((y - centerY) / centerY) * -10;
-            const rotY = ((x - centerX) / centerX) * 10;
-            card.style.setProperty('--rot-x', rotX + 'deg');
-            card.style.setProperty('--rot-y', rotY + 'deg');
+          if (rafId) cancelAnimationFrame(rafId);
+          rafId = requestAnimationFrame(() => {
+            const r = card.getBoundingClientRect();
+            const x = e.clientX - r.left, y = e.clientY - r.top;
+            const rx = ((y - r.height / 2) / (r.height / 2)) * -10;
+            const ry = ((x - r.width / 2) / (r.width / 2)) * 10;
+            card.style.setProperty('--rot-x', rx + 'deg');
+            card.style.setProperty('--rot-y', ry + 'deg');
             card.classList.add('tilted');
+            rafId = null;
+          });
         });
 
         card.addEventListener('mouseleave', () => {
-            card.classList.remove('tilted');
-            card.style.setProperty('--rot-x', '0deg');
-            card.style.setProperty('--rot-y', '0deg');
+          if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+          card.classList.remove('tilted');
+          card.style.setProperty('--rot-x', '0deg');
+          card.style.setProperty('--rot-y', '0deg');
         });
-    });
-
-    // ─────── CONTADORES ANIMADOS ───────
-    let countersAnimated = false;
-
-    function animateCounters() {
-        if (countersAnimated) return;
-        const statsSection = document.getElementById('datos');
-        if (!isInView(statsSection)) return;
-
-        countersAnimated = true;
-        document.querySelectorAll('.stat-number').forEach(el => {
-            const target = parseInt(el.dataset.target);
-            const suffix = el.querySelector('span') ? el.querySelector('span').outerHTML : '';
-            let current = 0;
-            const step = Math.ceil(target / 60);
-            const interval = setInterval(() => {
-                current += step;
-                if (current >= target) {
-                    current = target;
-                    clearInterval(interval);
-                }
-                el.innerHTML = current.toLocaleString() + suffix;
-            }, 20);
-        });
+      });
     }
+  };
 
-    window.addEventListener('scroll', animateCounters);
-
-
+  App.init();
+})();
 </script>
 </body>
 </html>
