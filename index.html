@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cosmos Misterioso — Portal OVNI</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Exo+2:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --space-black: #0a0a12;
+            --space-dark: #101020;
+            --neon-green: #39ff14;
+            --neon-blue: #00d4ff;
+            --neon-purple: #b026ff;
+            --glow-orange: #ff6a00;
+            --soft-white: #e8e8f0;
+            --card-bg: rgba(16, 16, 32, 0.85);
+            --border-glow: rgba(57, 255, 20, 0.2);
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Exo 2', sans-serif;
+            background: var(--space-black);
+            color: var(--soft-white);
+            overflow-x: hidden;
+        }
+
+        #stars-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .content {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px 40px;
+            background: rgba(10, 10, 18, 0.9);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-glow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 22px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--neon-green), var(--neon-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-links a {
+            color: var(--soft-white);
+            text-decoration: none;
+            margin-left: 30px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .nav-links a:hover {
+            color: var(--neon-green);
+            text-shadow: 0 0 10px var(--neon-green);
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--neon-green);
+            transition: width 0.3s;
+            box-shadow: 0 0 8px var(--neon-green);
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        /* Hero */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 120px 20px 60px;
+            position: relative;
+        }
+
+        .hero h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(40px, 8vw, 80px);
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--neon-green), var(--neon-blue), var(--neon-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+            animation: fadeInUp 1.2s ease;
+        }
+
+        .hero .subtitle {
+            font-size: clamp(16px, 2.5vw, 24px);
+            font-weight: 300;
+            color: rgba(232, 232, 240, 0.7);
+            margin-bottom: 40px;
+            animation: fadeInUp 1.2s ease 0.3s both;
+        }
+
+        .hero-cta {
+            display: inline-block;
+            padding: 16px 40px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--space-black);
+            background: var(--neon-green);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+            box-shadow: 0 0 30px rgba(57, 255, 20, 0.3);
+            animation: fadeInUp 1.2s ease 0.6s both;
+        }
+
+        .hero-cta:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0 50px rgba(57, 255, 20, 0.6);
+        }
+
+        .scroll-indicator {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: bounce 2s infinite;
+            color: rgba(232, 232, 240, 0.4);
+            font-size: 12px;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .scroll-indicator::after {
+            content: '↓';
+            display: block;
+            text-align: center;
+            font-size: 20px;
+            margin-top: 4px;
+        }
+
+        /* Sections */
+        section {
+            padding: 100px 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(24px, 4vw, 40px);
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--neon-green);
+            text-shadow: 0 0 20px rgba(57, 255, 20, 0.3);
+            text-align: center;
+        }
+
+        .section-subtitle {
+            text-align: center;
+            font-size: 16px;
+            color: rgba(232, 232, 240, 0.5);
+            margin-bottom: 60px;
+            font-weight: 300;
+        }
+
+        /* Cards Grid */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 16px;
+            padding: 32px 24px;
+            transition: all 0.4s;
+            backdrop-filter: blur(8px);
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            border-color: var(--neon-green);
+            box-shadow: 0 0 30px rgba(57, 255, 20, 0.15);
+        }
+
+        .card-icon {
+            font-size: 36px;
+            margin-bottom: 16px;
+            display: block;
+        }
+
+        .card h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--neon-blue);
+        }
+
+        .card p {
+            font-size: 14px;
+            line-height: 1.7;
+            color: rgba(232, 232, 240, 0.7);
+            font-weight: 300;
+        }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding-left: 40px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 12px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, var(--neon-green), var(--neon-blue), var(--neon-purple));
+            box-shadow: 0 0 15px rgba(57, 255, 20, 0.3);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 40px;
+            padding-left: 30px;
+        }
+
+        .timeline-item::before {
+            content: '◆';
+            position: absolute;
+            left: -35px;
+            top: 4px;
+            color: var(--neon-green);
+            font-size: 12px;
+            text-shadow: 0 0 10px var(--neon-green);
+        }
+
+        .timeline-item .year {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--neon-blue);
+            margin-bottom: 6px;
+        }
+
+        .timeline-item h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .timeline-item p {
+            font-size: 14px;
+            line-height: 1.7;
+            color: rgba(232, 232, 240, 0.7);
+            font-weight: 300;
+        }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            padding: 30px 20px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .stat-card:hover {
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 25px rgba(0, 212, 255, 0.15);
+        }
+
+        .stat-number {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 36px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: rgba(232, 232, 240, 0.5);
+            margin-top: 8px;
+            font-weight: 300;
+        }
+
+        /* Resources */
+        .resources-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+        }
+
+        .resource-link {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 20px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            text-decoration: none;
+            color: var(--soft-white);
+            transition: all 0.3s;
+        }
+
+        .resource-link:hover {
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 20px rgba(176, 38, 255, 0.2);
+            transform: translateX(4px);
+        }
+
+        .resource-link .emoji {
+            font-size: 28px;
+        }
+
+        .resource-link .info {
+            flex: 1;
+        }
+
+        .resource-link .info .name {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .resource-link .info .desc {
+            font-size: 12px;
+            color: rgba(232, 232, 240, 0.5);
+        }
+
+        .resource-link .arrow {
+            color: var(--neon-purple);
+            font-size: 18px;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px 20px;
+            border-top: 1px solid var(--border-glow);
+            font-size: 13px;
+            color: rgba(232, 232, 240, 0.3);
+            font-weight: 300;
+            position: relative;
+            z-index: 1;
+        }
+
+        footer span {
+            color: var(--neon-green);
+            text-shadow: 0 0 10px rgba(57, 255, 20, 0.3);
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(10px); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            nav {
+                padding: 16px 20px;
+                flex-direction: column;
+                gap: 12px;
+            }
+            .nav-links a {
+                margin: 0 12px;
+                font-size: 12px;
+            }
+            section {
+                padding: 60px 20px;
+            }
+            .timeline {
+                padding-left: 24px;
+            }
+            .timeline-item::before {
+                left: -29px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div id="stars-canvas"></div>
+
+<nav>
+    <div class="logo">✦ COSMOS MISTERIOSO</div>
+    <div class="nav-links">
+        <a href="#inicio">Inicio</a>
+        <a href="#fenomenos">Fenómenos</a>
+        <a href="#historia">Historia</a>
+        <a href="#datos">Datos</a>
+        <a href="#recursos">Recursos</a>
+    </div>
+</nav>
+
+<div class="content">
+
+    <section class="hero" id="inicio">
+        <h1>¿ESTAMOS SOLOS?</h1>
+        <p class="subtitle">Explorando el fenómeno OVNI — de avistamientos militares a encuentros imposibles</p>
+        <a href="#fenomenos" class="hero-cta">EXPLORAR</a>
+        <div class="scroll-indicator">DESCUBRE</div>
+    </section>
+
+    <section id="fenomenos">
+        <h2 class="section-title">Fenómenos</h2>
+        <p class="section-subtitle">Las categorías más reportadas del fenómeno OVNI</p>
+        <div class="cards-grid">
+            <div class="card">
+                <span class="card-icon">🛸</span>
+                <h3>Platillos Volantes</h3>
+                <p>El clásico disco metálico. Reportados desde los años 40, con movimientos erráticos y velocidades imposibles que desafían la física conocida.</p>
+            </div>
+            <div class="card">
+                <span class="card-icon">🔺</span>
+                <h3>Triángulos Negros</h3>
+                <p>Grandes naves sigilosas de forma triangular, usualmente vistas de noche a baja altitud. Silenciosas, con luces en las puntas. Asociadas a avistamientos masivos.</p>
+            </div>
+            <div class="card">
+                <span class="card-icon">💡</span>
+                <h3>Luces Inteligentes</h3>
+                <p>Orbes y esferas luminosas que cambian de color, se dividen, y realizan maniobras imposibles. Reportados por pilotos como los "Foo Fighters" desde la Segunda Guerra Mundial.</p>
+            </div>
+            <div class="card">
+                <span class="card-icon">🌊</span>
+                <h3>OVNIs Submarinos</h3>
+                <p>Objetos que emergen del agua a velocidades increíbles. Avistados por navíos militares, sugiriendo bases submarinas desconocidas en océanos y lagos profundos.</p>
+            </div>
+            <div class="card">
+                <span class="card-icon">📡</span>
+                <h3>Encuentros Cercanos</h3>
+                <p>Clasificación de Hynek: desde luces distantes (CE1) hasta aterrizajes (CE2) y contacto con ocupantes (CE3). Casos como Socorro, Hopkinsville y Voronezh.</p>
+            </div>
+            <div class="card">
+                <span class="card-icon">👽</span>
+                <h3>Abducciones</h3>
+                <p>Personas reportan haber sido llevadas a bordo de naves. Fenómeno global con patrones comunes: exámenes, comunicación telepática y pérdida de tiempo (missing time).</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="historia">
+        <h2 class="section-title">Casos Clásicos</h2>
+        <p class="section-subtitle">Avistamientos que marcaron la historia moderna del fenómeno</p>
+        <div class="timeline">
+            <div class="timeline-item">
+                <div class="year">1947</div>
+                <h3>Caso Roswell</h3>
+                <p>Un objeto se estrella en el rancho de Mac Brazel, Nuevo México. El ejército recupera escombros y luego emite un comunicado contradictorio. Comienza la era OVNI moderna.</p>
+            </div>
+            <div class="timeline-item">
+                <div class="year">1952</div>
+                <h3>Washington D.C. — Invasión sobre la capital</h3>
+                <p>Múltiples objetos cruzan el espacio aéreo restringido sobre la Casa Blanca y el Capitolio. Los radares del Aeropuerto Nacional y la Fuerza Aérea los confirman. Aviones F-94 son enviados pero los objetos se alejan a velocidad hipersónica.</p>
+            </div>
+            <div class="timeline-item">
+                <div class="year">1967</div>
+                <h3>Ola de Avistamientos en la Patagonia</h3>
+                <p>Argentina y Chile registran cientos de reportes. En el Cerro Uritorco (Córdoba), vecinos ven luces multicolores y una "nave nodriza". Nace la leyenda de la "base extraterrestre" en la zona.</p>
+            </div>
+            <div class="timeline-item">
+                <div class="year">1986</div>
+                <h3>La Noche de los OVNIs — Brasil</h3>
+                <p>21 objetos escoltan a los cazas de la Fuerza Aérea Brasileña en São Paulo. Los pilotos reportan comunicación por radio de objetos que maniobran a 15,000 km/h y apagan sus motores. El ejército los persigue por 3 horas.</p>
+            </div>
+            <div class="timeline-item">
+                <div class="year">1997</div>
+                <h3>Luces de Phoenix</h3>
+                <p>Una formación masiva en V de luces cruza Arizona frente a miles de testigos. El gobernador Fife Symington, testigo presencial, años después confirma que no era humano. El Pentágono nunca dio explicación.</p>
+            </div>
+            <div class="timeline-item">
+                <div class="year">2004 — 2023</div>
+                <h3>El Pentágono desclasifica</h3>
+                <p>Videos del USS Nimitz (Tic Tac), USS Theodore Roosevelt (GIMBAL, GOFAST) son publicados. El gobierno crea la AARO (All-domain Anomaly Resolution Office). Por primera vez, la inteligencia no humana se discute en serio en el Congreso de EE.UU.</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="datos">
+        <h2 class="section-title">El Fenómeno en Cifras</h2>
+        <p class="section-subtitle">Datos que invitan a preguntarse qué hay allá afuera</p>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">+125,000</div>
+                <div class="stat-label">Avistamientos reportados desde 1947</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">97%</div>
+                <div class="stat-label">Tienen explicación convencional — el 3% restante no</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">33</div>
+                <div class="stat-label">Países con archivos OVNI desclasificados</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">+4,000</div>
+                <div class="stat-label">Pilotos militares que han reportado fenómenos</div>
+            </div>
+        </div>
+    </section>
+
+    <section id="recursos">
+        <h2 class="section-title">Recursos</h2>
+        <p class="section-subtitle">Organizaciones, archivos y comunidades para seguir explorando</p>
+        <div class="resources-list">
+            <a href="https://www.aaro.mil" target="_blank" rel="noopener" class="resource-link">
+                <span class="emoji">🏛️</span>
+                <div class="info">
+                    <div class="name">AARO — Pentágono</div>
+                    <div class="desc">Oficina de Resolución de Anomalías del Departamento de Defensa de EE.UU.</div>
+                </div>
+                <span class="arrow">→</span>
+            </a>
+            <a href="https://www.mufon.com" target="_blank" rel="noopener" class="resource-link">
+                <span class="emoji">🔍</span>
+                <div class="info">
+                    <div class="name">MUFON</div>
+                    <div class="desc">Mutual UFO Network — la red civil más grande de investigación OVNI</div>
+                </div>
+                <span class="arrow">→</span>
+            </a>
+            <a href="https://www.cufos.org" target="_blank" rel="noopener" class="resource-link">
+                <span class="emoji">📚</span>
+                <div class="info">
+                    <div class="name">CUFOS</div>
+                    <div class="desc">Center for UFO Studies — archivo académico fundado por el Dr. J. Allen Hynek</div>
+                </div>
+                <span class="arrow">→</span>
+            </a>
+            <a href="https://www.nationalufocenter.com" target="_blank" rel="noopener" class="resource-link">
+                <span class="emoji">🌐</span>
+                <div class="info">
+                    <div class="name">National UFO Center</div>
+                    <div class="desc">Reportes en vivo y archivos históricos de avistamientos</div>
+                </div>
+                <span class="arrow">→</span>
+            </a>
+            <a href="https://www.theblackvault.com" target="_blank" rel="noopener" class="resource-link">
+                <span class="emoji">📂</span>
+                <div class="info">
+                    <div class="name">The Black Vault</div>
+                    <div class="desc">El archivo más grande de documentos OVNI obtenidos vía FOIA</div>
+                </div>
+                <span class="arrow">→</span>
+            </a>
+            <a href="https://www.naic.edu/~astro/classes/Space/Syllabus/notes/ETI/fermi.html" target="_blank" rel="noopener" class="resource-link">
+                <span class="emoji">🤔</span>
+                <div class="info">
+                    <div class="name">Paradoja de Fermi</div>
+                    <div class="desc">Si el universo está lleno de vida, ¿dónde está todo el mundo?</div>
+                </div>
+                <span class="arrow">→</span>
+            </a>
+        </div>
+    </section>
+
+    <footer>
+        Hecho con <span>✦</span> para la comunidad OVNI<br>
+        Basado en el repositorio Anthropic Skills · 2026
+    </footer>
+</div>
+
+<script>
+    let stars = [];
+    let shootingStars = [];
+
+    function setup() {
+        let canvas = createCanvas(windowWidth, windowHeight);
+        canvas.parent('stars-canvas');
+
+        for (let i = 0; i < 300; i++) {
+            stars.push({
+                x: random(width),
+                y: random(height),
+                size: random(0.5, 2.5),
+                alpha: random(80, 255),
+                speed: random(0.02, 0.08),
+                twinkleSpeed: random(0.005, 0.02),
+                twinklePhase: random(TWO_PI)
+            });
+        }
+    }
+
+    function draw() {
+        clear();
+
+        for (let s of stars) {
+            let twinkle = sin(frameCount * s.twinkleSpeed + s.twinklePhase);
+            let currentAlpha = s.alpha * map(twinkle, -1, 1, 0.4, 1);
+            stroke(255, 255, 255, currentAlpha);
+            strokeWeight(s.size);
+            point(s.x, s.y);
+        }
+
+        if (frameCount % 120 < 2 && random() < 0.3) {
+            shootingStars.push({
+                x: random(width),
+                y: random(height * 0.3),
+                len: random(60, 150),
+                speed: random(8, 16),
+                alpha: 255,
+                angle: random(PI * 0.2, PI * 0.4)
+            });
+        }
+
+        for (let i = shootingStars.length - 1; i >= 0; i--) {
+            let s = shootingStars[i];
+            let dx = cos(s.angle) * s.speed;
+            let dy = sin(s.angle) * s.speed;
+            s.x += dx;
+            s.y += dy;
+            s.alpha -= 4;
+
+            if (s.alpha <= 0 || s.x > width || s.y > height) {
+                shootingStars.splice(i, 1);
+                continue;
+            }
+
+            stroke(255, 255, 255, s.alpha);
+            strokeWeight(2);
+            line(s.x, s.y, s.x - dx * 0.8, s.y - dy * 0.8);
+
+            stroke(200, 220, 255, s.alpha * 0.3);
+            strokeWeight(4);
+            line(s.x, s.y, s.x - dx * 0.6, s.y - dy * 0.6);
+        }
+    }
+
+    function windowResized() {
+        resizeCanvas(windowWidth, windowHeight);
+    }
+</script>
+
+</body>
+</html>
