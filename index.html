@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Cosmos Misterioso — Portal OVNI</title>
+    <script>document.documentElement.classList.add('js');</script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Exo+2:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -29,10 +30,11 @@
             background: var(--space-black);
             color: var(--soft-white);
             overflow-x: hidden;
-            cursor: none;
         }
 
-        a, button, .card, .resource-link, .stat-card { cursor: none; }
+        .js body { cursor: none; }
+
+        .js a, .js button, .js .card, .js .resource-link, .js .stat-card { cursor: none; }
 
         #cursor {
             position: fixed;
@@ -312,12 +314,15 @@
             color: var(--neon-green);
             text-shadow: 0 0 20px rgba(57, 255, 20, 0.3);
             text-align: center;
+        }
+
+        .js .section-title {
             opacity: 0;
             transform: translateY(30px);
             transition: all 0.8s ease;
         }
 
-        .section-title.visible {
+        .js .section-title.visible {
             opacity: 1;
             transform: translateY(0);
         }
@@ -328,12 +333,15 @@
             color: rgba(232, 232, 240, 0.4);
             margin-bottom: 50px;
             font-weight: 300;
+        }
+
+        .js .section-subtitle {
             opacity: 0;
             transform: translateY(20px);
             transition: all 0.8s ease 0.2s;
         }
 
-        .section-subtitle.visible {
+        .js .section-subtitle.visible {
             opacity: 1;
             transform: translateY(0);
         }
@@ -349,15 +357,18 @@
             border: 1px solid var(--border-glow);
             border-radius: 16px;
             padding: 32px 24px;
-            transition: all 0.4s;
             backdrop-filter: blur(8px);
             perspective: 1000px;
             transform-style: preserve-3d;
-            opacity: 0;
-            transform: translateY(40px);
         }
 
-        .card.visible {
+        .js .card {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all 0.4s;
+        }
+
+        .js .card.visible {
             opacity: 1;
             transform: translateY(0);
         }
@@ -366,6 +377,7 @@
             transform: perspective(1000px) rotateX(var(--rot-x, 0deg)) rotateY(var(--rot-y, 0deg)) translateY(0);
             border-color: var(--neon-green);
             box-shadow: 0 0 35px rgba(57, 255, 20, 0.15);
+            transition: transform 0.15s ease, border-color 0.3s, box-shadow 0.3s;
         }
 
         .card-icon {
@@ -412,12 +424,15 @@
             position: relative;
             margin-bottom: 40px;
             padding-left: 30px;
+        }
+
+        .js .timeline-item {
             opacity: 0;
             transform: translateX(-20px);
             transition: all 0.6s ease;
         }
 
-        .timeline-item.visible {
+        .js .timeline-item.visible {
             opacity: 1;
             transform: translateX(0);
         }
@@ -467,12 +482,15 @@
             border-radius: 12px;
             padding: 30px 20px;
             text-align: center;
-            transition: all 0.3s;
-            opacity: 0;
-            transform: translateY(30px);
         }
 
-        .stat-card.visible {
+        .js .stat-card {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.3s;
+        }
+
+        .js .stat-card.visible {
             opacity: 1;
             transform: translateY(0);
         }
@@ -480,7 +498,7 @@
         .stat-card:hover {
             border-color: var(--neon-blue);
             box-shadow: 0 0 25px rgba(0, 212, 255, 0.15);
-            transform: translateY(-4px);
+            transform: translateY(-4px) !important;
         }
 
         .stat-number {
@@ -552,12 +570,15 @@
             border-radius: 12px;
             text-decoration: none;
             color: var(--soft-white);
-            transition: all 0.3s;
-            opacity: 0;
-            transform: translateX(-20px);
         }
 
-        .resource-link.visible {
+        .js .resource-link {
+            opacity: 0;
+            transform: translateX(-20px);
+            transition: all 0.3s;
+        }
+
+        .js .resource-link.visible {
             opacity: 1;
             transform: translateX(0);
         }
@@ -565,7 +586,7 @@
         .resource-link:hover {
             border-color: var(--neon-purple);
             box-shadow: 0 0 20px rgba(176, 38, 255, 0.2);
-            transform: translateX(6px);
+            transform: translateX(6px) !important;
         }
 
         .resource-link .emoji { font-size: 28px; }
@@ -664,9 +685,9 @@
             .timeline { padding-left: 24px; }
             .timeline-item::before { left: -29px; }
             .radar-container { width: 240px; height: 240px; }
-            #cursor { display: none; }
-            body { cursor: auto; }
-            a, button, .card, .resource-link, .stat-card { cursor: pointer; }
+            .js #cursor { display: none; }
+            .js body { cursor: auto; }
+            .js a, .js button, .js .card, .js .resource-link, .js .stat-card { cursor: pointer; }
         }
     </style>
 </head>
@@ -694,7 +715,7 @@
     <section class="hero" id="inicio">
         <div class="hero-glow"></div>
         <div class="ufo-3d-container"><div id="three-ufo"></div></div>
-        <h1 id="typed-title"><span class="cursor-blink">|</span></h1>
+        <h1 id="typed-title">¿ESTAMOS SOLOS?</h1>
         <p class="subtitle">Explorando el fenómeno OVNI — de avistamientos militares a encuentros imposibles</p>
         <a href="#fenomenos" class="hero-cta">EXPLORAR</a>
         <div class="scroll-indicator">DESCUBRE</div>
@@ -882,6 +903,8 @@
     const titleEl = document.getElementById('typed-title');
     const fullTitle = '¿ESTAMOS SOLOS?';
     let charIndex = 0;
+
+    titleEl.innerHTML = '';
 
     function typeTitle() {
         if (charIndex < fullTitle.length) {
