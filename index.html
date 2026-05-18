@@ -906,11 +906,6 @@
       const ctx = c.getContext('2d');
       return ctx ? { canvas: c, ctx } : null;
     },
-    isInView(el, offset) {
-      if (!el) return false;
-      const r = el.getBoundingClientRect();
-      return r.top < window.innerHeight - (offset || 60);
-    },
     debounceRAF(fn) {
       let ticking = false;
       return (...args) => {
@@ -1427,29 +1422,38 @@
     initScrollReveal() {
       const state = { cards: false, stats: false, resources: false };
 
+      function isPastFold(el, pad) {
+        if (!el) return false;
+        const r = el.getBoundingClientRect();
+        return r.top < window.innerHeight + (pad || 0);
+      }
+
       function reveal() {
-        // Simple items
+        // Simple items (offset 0 so elements exactly at the fold are caught)
         App.qsa('.section-title, .section-subtitle, .timeline-item').forEach(el => {
-          if (App.isInView(el) && !el.classList.contains('visible')) {
+          if (isPastFold(el) && !el.classList.contains('visible')) {
             el.classList.add('visible');
           }
         });
 
-        // Staggered groups (one shot)
-        if (!state.cards && App.isInView(App.qs('#cards-grid'), 100)) {
-          state.cards = true;
-          App.qsa('.card').forEach((c, i) => setTimeout(() => c.classList.add('visible'), i * 100));
+        // Staggered groups — use a small pad so they trigger slightly before entering
+        if (!state.cards) {
+          const grid = App.qs('#cards-grid');
+          if (grid && isPastFold(grid, 80)) {
+            state.cards = true;
+            App.qsa('.card').forEach((c, i) => setTimeout(() => c.classList.add('visible'), i * 100));
+          }
         }
         if (!state.stats) {
           const sec = App.qs('#datos');
-          if (sec && App.isInView(sec, 100)) {
+          if (sec && isPastFold(sec, 80)) {
             state.stats = true;
             App.qsa('.stat-card').forEach((s, i) => setTimeout(() => s.classList.add('visible'), i * 150));
           }
         }
         if (!state.resources) {
           const sec = App.qs('#recursos');
-          if (sec && App.isInView(sec, 100)) {
+          if (sec && isPastFold(sec, 80)) {
             state.resources = true;
             App.qsa('.resource-link').forEach((l, i) => setTimeout(() => l.classList.add('visible'), i * 100));
           }
@@ -1458,17 +1462,25 @@
 
       const throttled = this.debounceRAF(reveal);
       this.on(window, 'scroll', throttled);
+
+      // First pass sync + double-RAF to catch elements at the fold after layout
       reveal();
+      requestAnimationFrame(() => requestAnimationFrame(() => reveal()));
     },
 
     // ---------- 9. COUNTERS ----------
     initCounters() {
       let done = false;
 
+      function isPastFold(el) {
+        if (!el) return false;
+        return el.getBoundingClientRect().top < window.innerHeight;
+      }
+
       const animate = () => {
         if (done) return;
         const sec = App.qs('#datos');
-        if (!sec || !App.isInView(sec)) return;
+        if (!sec || !isPastFold(sec)) return;
         done = true;
 
         App.qsa('.stat-number').forEach(el => {
@@ -1487,7 +1499,7 @@
 
       const throttled = this.debounceRAF(animate);
       this.on(window, 'scroll', throttled);
-      animate();
+      requestAnimationFrame(() => animate());
     },
 
     // ---------- 10. CARD TILT ----------
